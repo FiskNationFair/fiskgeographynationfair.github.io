@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geografia Interativa dos EUA</title>
+    <title id="appTitle">Geografia Interativa dos EUA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Visualization & Content Choices:
-        - Grandes Regiões: Report Info (Regional descriptions) -> Goal (Compare regions) -> Viz (Text + Illustrative Chart.js Bar Chart: 'Número de Ecossistemas Principais (Estimado)') -> Interaction (Region selection updates content and chart) -> Justification (Visual comparison and focused info) -> Library (Chart.js).
-        - Relevo e Hidrografia (Rios e Lagos): Report Info (Major rivers) -> Goal (Inform and compare features) -> Viz (Text + Chart.js Horizontal Bar Chart: River Lengths - illustrative) -> Interaction (Chart display within section) -> Justification (Quantitative comparison) -> Library (Chart.js).
+        - Grandes Regiões: Report Info (Regional descriptions) -> Goal (Compare regions) -> Viz (Text + Illustrative Chart.js Bar Chart: 'Número de Ecossistemas Principais (Estimado)' + Placeholder Images + Interactive Conceptual Map) -> Interaction (Region selection updates content and chart, map click updates content and highlights) -> Justification (Visual comparison, focused info, and intuitive spatial selection) -> Library (Chart.js, HTML/CSS for map).
+        - Relevo e Hidrografia (Rios e Lagos): Report Info (Major rivers) -> Goal (Inform and compare features) -> Viz (Text + Chart.js Horizontal Bar Chart: River Lengths - illustrative + Placeholder Images) -> Interaction (Chart display within section, feature selection updates content) -> Justification (Quantitative comparison, visual context) -> Library (Chart.js).
         - General: Unicode icons (⛰️, 🌊, ☀️, 🏙️, 🌾, 🏜️) for visual cues. Textual content from report adapted for SPA sections.
+        - Language Toggle: Added a language selector to switch all textual content and chart labels between Portuguese and English.
+        - "Did You Know?" Modals: Small clickable buttons reveal interesting facts in a modal overlay, adding a layer of discovery.
         - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -21,6 +23,10 @@
             color: #0284c7;
         }
         .region-button.active {
+            background-color: #059669; /* emerald-600 */
+            color: white;
+        }
+        .feature-button.active {
             background-color: #059669; /* emerald-600 */
             color: white;
         }
@@ -49,135 +55,269 @@
                 height: 384px; /* h-96 */
             }
         }
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.open .modal-content {
+            transform: translateY(0);
+        }
+        .modal-close-button {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #ef4444; /* red-500 */
+        }
+        /* Conceptual Map Styles */
+        .conceptual-map-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* Adjust columns for visual representation */
+            gap: 0.5rem;
+            max-width: 400px; /* Constrain map width */
+            margin: 0 auto 1.5rem auto;
+            border: 1px solid #d1d5db; /* stone-300 */
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .map-region-item {
+            padding: 0.75rem;
+            background-color: #f3f4f6; /* gray-100 */
+            border: 1px solid #e5e7eb; /* gray-200 */
+            text-align: center;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+        }
+        .map-region-item:hover {
+            background-color: #e5e7eb; /* gray-200 */
+        }
+        .map-region-item.active-map-region {
+            background-color: #059669; /* emerald-600 */
+            color: white;
+            font-weight: bold;
+            border-color: #047857; /* emerald-700 */
+        }
+        /* Specific grid layout for map-like appearance */
+        .map-region-item[data-map-region="nordeste"] { grid-column: 3; grid-row: 1; }
+        .map-region-item[data-map-region="centro-oeste"] { grid-column: 2; grid-row: 2; }
+        .map-region-item[data-map-region="oeste"] { grid-column: 1; grid-row: 2; }
+        .map-region-item[data-map-region="sudoeste"] { grid-column: 1 / span 2; grid-row: 3; }
+        .map-region-item[data-map-region="sul"] { grid-column: 3; grid-row: 2 / span 2; }
+
+        @media (max-width: 639px) { /* Adjust map for smaller screens */
+            .conceptual-map-grid {
+                grid-template-columns: repeat(2, 1fr);
+                max-width: 300px;
+            }
+            .map-region-item[data-map-region="nordeste"] { grid-column: 2; grid-row: 1; }
+            .map-region-item[data-map-region="centro-oeste"] { grid-column: 1; grid-row: 1; }
+            .map-region-item[data-map-region="oeste"] { grid-column: 1; grid-row: 2; }
+            .map-region-item[data-map-region="sudoeste"] { grid-column: 2; grid-row: 2; }
+            .map-region-item[data-map-region="sul"] { grid-column: 1 / span 2; grid-row: 3; }
+        }
     </style>
 </head>
 <body class="bg-stone-100 text-stone-800">
 
     <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-7xl">
-        <header class="mb-8 text-center">
-            <h1 class="text-4xl md:text-5xl font-bold text-sky-700">Explorando a Geografia dos EUA 🇺🇸</h1>
-            <p class="text-lg text-stone-600 mt-2">Uma jornada interativa pelas paisagens e características que definem uma nação.</p>
+        <header class="mb-8 text-center relative">
+            <h1 id="headerTitle" class="text-4xl md:text-5xl font-bold text-sky-700">Explorando a Geografia dos EUA 🇺🇸</h1>
+            <p id="headerSubtitle" class="text-lg text-stone-600 mt-2">Uma jornada interativa pelas paisagens e características que definem uma nação.</p>
+            <div class="absolute top-0 right-0 mt-2 mr-2 sm:mt-4 sm:mr-4">
+                <select id="language-select" class="p-2 rounded-md border border-stone-300 bg-white shadow-sm">
+                    <option value="pt">Português</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
         </header>
 
         <nav class="mb-8 flex flex-wrap justify-center border-b-2 border-stone-300">
-            <button data-tab="visao-geral" class="tab-button active text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors">Visão Geral</button>
-            <button data-tab="regioes" class="tab-button text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors">Grandes Regiões</button>
-            <button data-tab="relevo-hidrografia" class="tab-button text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors">Relevo e Hidrografia</button>
-            <button data-tab="geografia-cultura" class="tab-button text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors">Geografia e Cultura</button>
+            <button data-tab="visao-geral" class="tab-button active text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors"><span id="navVisaoGeral">Visão Geral</span></button>
+            <button data-tab="regioes" class="tab-button text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors"><span id="navRegioes">Grandes Regiões</span></button>
+            <button data-tab="relevo-hidrografia" class="tab-button text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors"><span id="navRelevoHidrografia">Relevo e Hidrografia</span></button>
+            <button data-tab="geografia-cultura" class="tab-button text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors"><span id="navGeografiaCultura">Geografia e Cultura</span></button>
         </nav>
 
         <main>
             <section id="visao-geral" class="tab-content bg-white p-6 rounded-lg shadow-lg">
-                <h2 class="text-3xl font-semibold text-sky-600 mb-4">Bem-vindo à Exploração Geográfica dos EUA!</h2>
-                <p class="mb-4 text-lg leading-relaxed">
+                <h2 id="visaoGeralTitle" class="text-3xl font-semibold text-sky-600 mb-4">Bem-vindo à Exploração Geográfica dos EUA!</h2>
+                <p id="visaoGeralPara1" class="mb-4 text-lg leading-relaxed">
                     Esta aplicação interativa foi criada para apresentar a você a diversidade e a complexidade da geografia dos Estados Unidos. A geografia de um país é fundamental para entender sua história, cultura, economia e os desafios que enfrenta. Os EUA, com sua vasta extensão territorial, abrigam uma incrível variedade de paisagens, climas e ecossistemas.
                 </p>
-                <p class="mb-4 text-lg leading-relaxed">
+                <p id="visaoGeralPara2" class="mb-4 text-lg leading-relaxed">
                     Navegue pelas abas para descobrir as características marcantes das <span class="font-semibold text-emerald-600">Grandes Regiões</span>, explorar as imponentes <span class="font-semibold text-emerald-600">Formações de Relevo e Hidrografia</span>, e entender como a <span class="font-semibold text-emerald-600">Geografia influencia a Cultura</span> e o modo de vida americano.
                 </p>
-                <p class="text-lg leading-relaxed">
+                <p id="visaoGeralPara3" class="text-lg leading-relaxed">
                     Utilize os elementos interativos, como gráficos e seletores, para aprofundar seu conhecimento. Esperamos que esta jornada seja informativa e estimulante!
                 </p>
                  <div class="mt-6 text-center">
-                    <button onclick="document.querySelector('[data-tab=\'regioes\']').click()" class="bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-sky-700 transition-colors shadow-md">
+                    <button id="startExploringBtn" onclick="document.querySelector('[data-tab=\'regioes\']').click()" class="bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-sky-700 transition-colors shadow-md">
                         Comece Explorando as Regiões 🗺️
+                    </button>
+                </div>
+                <div class="mt-8 text-center">
+                    <button id="curiosidadeVisaoGeralBtn" class="bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-emerald-700 transition-colors shadow-md">
+                        <span id="curiosidadeVisaoGeralText">Curiosidade!</span> ✨
                     </button>
                 </div>
             </section>
 
             <section id="regioes" class="tab-content hidden bg-white p-6 rounded-lg shadow-lg">
-                <h2 class="text-3xl font-semibold text-sky-600 mb-6">As Grandes Regiões Geográficas dos EUA</h2>
-                <p class="mb-6 text-lg leading-relaxed">
+                <h2 id="regioesTitle" class="text-3xl font-semibold text-sky-600 mb-6">As Grandes Regiões Geográficas dos EUA</h2>
+                <p id="regioesIntro" class="mb-6 text-lg leading-relaxed">
                     Os Estados Unidos são um país de dimensões continentais, e sua geografia é frequentemente dividida em grandes regiões, cada uma com identidades culturais, econômicas e paisagísticas distintas. Explore abaixo para conhecer as particularidades de cada uma. Ao selecionar uma região, você verá suas características e um gráfico comparativo ilustrativo sobre a diversidade de ecossistemas.
                 </p>
-                <div class="mb-6 flex flex-wrap justify-center gap-2">
-                    <button data-region="nordeste" class="region-button active bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 transition-colors">Nordeste 🏙️</button>
-                    <button data-region="sul" class="region-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors">Sul ☀️</button>
-                    <button data-region="centro-oeste" class="region-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors">Centro-Oeste 🌾</button>
-                    <button data-region="sudoeste" class="region-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors">Sudoeste 🏜️</button>
-                    <button data-region="oeste" class="region-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors">Oeste/Costa Oeste 🏞️</button>
+
+                <h3 id="mapaConceitualTitle" class="text-xl font-semibold text-emerald-700 mb-3 text-center">Clique em uma região no mapa para explorar:</h3>
+                <div class="conceptual-map-grid mb-6">
+                    <div class="map-region-item" data-map-region="nordeste"><span id="mapNordeste">Nordeste</span></div>
+                    <div class="map-region-item" data-map-region="centro-oeste"><span id="mapCentroOeste">Centro-Oeste</span></div>
+                    <div class="map-region-item" data-map-region="oeste"><span id="mapOeste">Oeste</span></div>
+                    <div class="map-region-item" data-map-region="sudoeste"><span id="mapSudoeste">Sudoeste</span></div>
+                    <div class="map-region-item" data-map-region="sul"><span id="mapSul">Sul</span></div>
                 </div>
 
-                <div id="region-info" class="mb-6 p-4 border border-stone-300 rounded-lg bg-stone-50 min-h-[200px]">
+                <div class="mb-6 flex flex-wrap justify-center gap-2">
+                    <button data-region="nordeste" class="region-button active bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 transition-colors"><span id="btnNordeste">Nordeste</span> 🏙️</button>
+                    <button data-region="sul" class="region-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors"><span id="btnSul">Sul</span> ☀️</button>
+                    <button data-region="centro-oeste" class="region-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors"><span id="btnCentroOeste">Centro-Oeste</span> 🌾</button>
+                    <button data-region="sudoeste" class="region-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors"><span id="btnSudoeste">Sudoeste</span> 🏜️</button>
+                    <button data-region="oeste" class="region-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors"><span id="btnOeste">Oeste/Costa Oeste</span> 🏞️</button>
+                </div>
+
+                <div id="region-info" class="mb-6 p-4 border border-stone-300 rounded-lg bg-stone-50 min-h-[200px] flex flex-col md:flex-row items-center md:items-start gap-4">
                     </div>
-                <h3 class="text-2xl font-semibold text-emerald-700 mb-3 text-center">Comparativo Regional: Número de Ecossistemas Principais (Estimado)</h3>
-                <p class="text-center text-sm text-stone-600 mb-4">Este gráfico ilustra uma estimativa da diversidade de grandes ecossistemas por região. Clique nas regiões acima para atualizar.</p>
+                <h3 id="regioesChartTitle" class="text-2xl font-semibold text-emerald-700 mb-3 text-center">Comparativo Regional: Número de Ecossistemas Principais (Estimado)</h3>
+                <p id="regioesChartSubtitle" class="text-center text-sm text-stone-600 mb-4">Este gráfico ilustra uma estimativa da diversidade de grandes ecossistemas por região. Clique nas regiões acima para atualizar.</p>
                 <div class="chart-container">
                     <canvas id="regioesChart"></canvas>
                 </div>
             </section>
 
             <section id="relevo-hidrografia" class="tab-content hidden bg-white p-6 rounded-lg shadow-lg">
-                <h2 class="text-3xl font-semibold text-sky-600 mb-6">Relevo e Hidrografia dos EUA</h2>
-                <p class="mb-6 text-lg leading-relaxed">
+                <h2 id="relevoHidrografiaTitle" class="text-3xl font-semibold text-sky-600 mb-6">Relevo e Hidrografia dos EUA</h2>
+                <p id="relevoHidrografiaIntro" class="mb-6 text-lg leading-relaxed">
                     As formas do terreno (relevo) e a distribuição das águas (hidrografia) são elementos cruciais que definem as paisagens e influenciam o clima e a ocupação humana. Os EUA apresentam uma grande variedade, desde imponentes cadeias montanhosas a vastas planícies e extensos sistemas fluviais. Explore os botões abaixo para aprender sobre cada componente.
                 </p>
                 <div class="mb-6 flex flex-wrap justify-center gap-2">
-                    <button data-feature="montanhas" class="feature-button bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 transition-colors">Montanhas ⛰️</button>
-                    <button data-feature="planicies" class="feature-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors">Grandes Planícies 🌾</button>
-                    <button data-feature="rios-lagos" class="feature-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors">Rios e Lagos 🌊</button>
-                    <button data-feature="litoral" class="feature-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors">Litoral 🏖️</button>
+                    <button data-feature="montanhas" class="feature-button bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 transition-colors"><span id="btnMontanhas">Montanhas</span> ⛰️</button>
+                    <button data-feature="planicies" class="feature-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors"><span id="btnPlanicies">Grandes Planícies</span> 🌾</button>
+                    <button data-feature="rios-lagos" class="feature-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors"><span id="btnRiosLagos">Rios e Lagos</span> 🌊</button>
+                    <button data-feature="litoral" class="feature-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors"><span id="btnLitoral">Litoral</span> 🏖️</button>
                 </div>
-                <div id="feature-info" class="p-4 border border-stone-300 rounded-lg bg-stone-50 min-h-[150px]">
+                <div id="feature-info" class="p-4 border border-stone-300 rounded-lg bg-stone-50 min-h-[150px] flex flex-col md:flex-row items-center md:items-start gap-4">
                     </div>
                 <div id="rios-chart-container" class="hidden mt-6">
-                    <h3 class="text-2xl font-semibold text-emerald-700 mb-3 text-center">Comparativo: Extensão de Rios Selecionados (Estimativa em km)</h3>
-                    <p class="text-center text-sm text-stone-600 mb-4">Este gráfico mostra a extensão aproximada de alguns dos principais rios dos EUA.</p>
+                    <h3 id="riosChartTitle" class="text-2xl font-semibold text-emerald-700 mb-3 text-center">Comparativo: Extensão de Rios Selecionados (Estimativa em km)</h3>
+                    <p id="riosChartSubtitle" class="text-center text-sm text-stone-600 mb-4">Este gráfico mostra a extensão aproximada de alguns dos principais rios dos EUA.</p>
                     <div class="chart-container">
                         <canvas id="riosChart"></canvas>
                     </div>
                 </div>
+                <div class="mt-8 text-center">
+                    <button id="curiosidadeRelevoBtn" class="bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-emerald-700 transition-colors shadow-md">
+                        <span id="curiosidadeRelevoText">Curiosidade!</span> ✨
+                    </button>
+                </div>
             </section>
 
             <section id="geografia-cultura" class="tab-content hidden bg-white p-6 rounded-lg shadow-lg">
-                <h2 class="text-3xl font-semibold text-sky-600 mb-6">O Impacto da Geografia na Cultura Americana</h2>
-                <p class="mb-6 text-lg leading-relaxed">
+                <h2 id="geografiaCulturaTitle" class="text-3xl font-semibold text-sky-600 mb-6">O Impacto da Geografia na Cultura Americana</h2>
+                <p id="geografiaCulturaIntro" class="mb-6 text-lg leading-relaxed">
                     A geografia de um lugar não é apenas um pano de fundo; ela é uma força ativa que molda profundamente como as pessoas vivem, trabalham, se relacionam e desenvolvem suas culturas. Nos Estados Unidos, a diversidade geográfica resultou em uma rica tapeçaria de estilos de vida, economias regionais e até mesmo desafios específicos. Clique nos tópicos abaixo para expandir e ver como diferentes aspectos geográficos influenciam a vida nos EUA.
                 </p>
                 <div class="space-y-3">
                     <div>
                         <button class="accordion-button w-full text-left font-semibold p-4 bg-stone-100 hover:bg-stone-200 rounded-md transition-colors flex justify-between items-center">
-                            Clima e Estilo de Vida ☀️❄️
+                            <span id="accClimaTitle">Clima e Estilo de Vida</span> ☀️❄️
                             <span class="arrow transform transition-transform duration-300">▼</span>
                         </button>
                         <div class="accordion-content bg-stone-50 p-4 border border-t-0 border-stone-200 rounded-b-md">
-                            <p>Do calor úmido e subtropical do Sul, que influencia a arquitetura com varandas amplas e um ritmo de vida mais vagaroso, aos invernos rigorosos e nevados do Nordeste e partes do Centro-Oeste, que exigem preparação e moldam atividades de lazer como esqui e hóquei. Na Costa Oeste, climas mais amenos como o mediterrâneo na Califórnia favorecem atividades ao ar livre durante todo o ano. Essas variações climáticas afetam tudo, desde o tipo de agricultura possível até as roupas que as pessoas usam e as casas que constroem.</p>
+                            <p id="accClimaContent"></p>
                         </div>
                     </div>
                     <div>
                         <button class="accordion-button w-full text-left font-semibold p-4 bg-stone-100 hover:bg-stone-200 rounded-md transition-colors flex justify-between items-center">
-                            Economia Local 🌽🏭
+                            <span id="accEconomiaTitle">Economia Local</span> 🌽🏭
                             <span class="arrow transform transition-transform duration-300">▼</span>
                         </button>
                         <div class="accordion-content bg-stone-50 p-4 border border-t-0 border-stone-200 rounded-b-md">
-                            <p>A geografia é um fator determinante para as atividades econômicas. As vastas e férteis Grandes Planícies no Centro-Oeste tornam a região o "celeiro" do país, com agricultura extensiva de grãos. Regiões costeiras, como o Nordeste e a Costa Oeste, historicamente se desenvolveram com base no comércio marítimo, pesca e, mais recentemente, turismo. A presença de recursos minerais, como carvão nos Apalaches ou petróleo no Texas e Alasca, impulsiona indústrias extrativas. O Sudoeste árido favorece a energia solar, enquanto as montanhas e florestas do Oeste atraem turismo e exploração madeireira.</p>
+                            <p id="accEconomiaContent"></p>
                         </div>
                     </div>
                     <div>
                         <button class="accordion-button w-full text-left font-semibold p-4 bg-stone-100 hover:bg-stone-200 rounded-md transition-colors flex justify-between items-center">
-                            Desenvolvimento Urbano 🏙️🚗
+                            <span id="accDesenvolvimentoTitle">Desenvolvimento Urbano</span> 🏙️🚗
                             <span class="arrow transform transition-transform duration-300">▼</span>
                         </button>
                         <div class="accordion-content bg-stone-50 p-4 border border-t-0 border-stone-200 rounded-b-md">
-                            <p>A localização de muitas cidades americanas foi estrategicamente definida pela geografia. Portos naturais no Nordeste (Nova York, Boston) e na Costa Oeste (São Francisco, Seattle) permitiram o florescimento de grandes centros urbanos. Rios navegáveis como o Mississippi e o Ohio facilitaram o transporte e o comércio, levando ao crescimento de cidades em suas margens (St. Louis, Cincinnati). Em contraste, a expansão para o Oeste, com vastas extensões de terra, favoreceu um modelo de desenvolvimento mais disperso e dependente do automóvel em muitas cidades.</p>
+                            <p id="accDesenvolvimentoContent"></p>
                         </div>
                     </div>
                     <div>
                         <button class="accordion-button w-full text-left font-semibold p-4 bg-stone-100 hover:bg-stone-200 rounded-md transition-colors flex justify-between items-center">
-                            Desafios Naturais 🌪️地震
+                            <span id="accDesafiosTitle">Desafios Naturais</span> 🌪️地震
                             <span class="arrow transform transition-transform duration-300">▼</span>
                         </button>
                         <div class="accordion-content bg-stone-50 p-4 border border-t-0 border-stone-200 rounded-b-md">
-                            <p>A diversidade geográfica também traz consigo uma variedade de desafios naturais. A Costa do Golfo e a Costa Leste são vulneráveis a furacões. O Centro-Oeste é conhecido como "Tornado Alley" devido à frequência de tornados. A Califórnia e outras partes da Costa Oeste estão em zonas sismicamente ativas, sujeitas a terremotos. Incêndios florestais são uma ameaça crescente em áreas áridas e florestais do Oeste, especialmente durante períodos de seca. Esses desafios exigem planejamento, infraestrutura resiliente e sistemas de alerta precoce, moldando a forma como as comunidades se preparam e respondem a desastres.</p>
+                            <p id="accDesafiosContent"></p>
                         </div>
                     </div>
+                </div>
+                <div class="mt-8 text-center">
+                    <button id="curiosidadeCulturaBtn" class="bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-emerald-700 transition-colors shadow-md">
+                        <span id="curiosidadeCulturaText">Curiosidade!</span> ✨
+                    </button>
                 </div>
             </section>
         </main>
 
         <footer class="mt-12 pt-6 border-t-2 border-stone-300 text-center text-stone-600">
-            <p>&copy; <span id="currentYear"></span> Aplicação Interativa de Geografia. Conteúdo adaptado para fins educacionais.</p>
+            <p><span id="footerText">&copy; <span id="currentYear"></span> Aplicação Interativa de Geografia. Conteúdo adaptado para fins educacionais.</span></p>
         </footer>
+    </div>
+
+    <div id="curiosidadeModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-button">&times;</button>
+            <h3 id="modalTitle" class="text-2xl font-semibold text-sky-600 mb-4">Curiosidade!</h3>
+            <p id="modalContent" class="text-lg leading-relaxed"></p>
+        </div>
     </div>
 
     <script>
@@ -189,94 +329,405 @@
         const featureInfoDiv = document.getElementById('feature-info');
         const riosChartContainer = document.getElementById('rios-chart-container');
         const accordionButtons = document.querySelectorAll('.accordion-button');
+        const languageSelect = document.getElementById('language-select');
+        const conceptualMapRegions = document.querySelectorAll('.map-region-item');
+
+        const curiosidadeModal = document.getElementById('curiosidadeModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalContent = document.getElementById('modalContent');
+        const modalCloseButton = document.querySelector('.modal-close-button');
+        const curiosidadeVisaoGeralBtn = document.getElementById('curiosidadeVisaoGeralBtn');
+        const curiosidadeRelevoBtn = document.getElementById('curiosidadeRelevoBtn');
+        const curiosidadeCulturaBtn = document.getElementById('curiosidadeCulturaBtn');
+
+        let currentLanguage = 'pt'; // Default language
 
         document.getElementById('currentYear').textContent = new Date().getFullYear();
 
-        const regioesData = {
-            nordeste: {
-                nome: "Nordeste 🏙️",
-                descricao: "Berço da nação, o Nordeste é conhecido por suas cidades históricas como Boston e Nova York, costas recortadas, os Montes Apalaches e invernos rigorosos. Sua economia é diversificada, com forte presença em finanças, educação e tecnologia. Culturalmente, possui grande influência europeia e uma rica história colonial.",
-                clima: "Temperado continental, com verões quentes e invernos frios e nevados.",
-                economia: "Finanças, educação, saúde, tecnologia, turismo.",
-                ecossistemas: 4
+        const contentData = {
+            pt: {
+                appTitle: "Geografia Interativa dos EUA",
+                headerTitle: "Explorando a Geografia dos EUA 🇺🇸",
+                headerSubtitle: "Uma jornada interativa pelas paisagens e características que definem uma nação.",
+                navVisaoGeral: "Visão Geral",
+                navRegioes: "Grandes Regiões",
+                navRelevoHidrografia: "Relevo e Hidrografia",
+                navGeografiaCultura: "Geografia e Cultura",
+                visaoGeralTitle: "Bem-vindo à Exploração Geográfica dos EUA!",
+                visaoGeralPara1: "Esta aplicação interativa foi criada para apresentar a você a diversidade e a complexidade da geografia dos Estados Unidos. A geografia de um país é fundamental para entender sua história, cultura, economia e os desafios que enfrenta. Os EUA, com sua vasta extensão territorial, abrigam uma incrível variedade de paisagens, climas e ecossistemas.",
+                visaoGeralPara2: "Navegue pelas abas para descobrir as características marcantes das <span class='font-semibold text-emerald-600'>Grandes Regiões</span>, explorar as imponentes <span class='font-semibold text-emerald-600'>Formações de Relevo e Hidrografia</span>, e entender como a <span class='font-semibold text-emerald-600'>Geografia influencia a Cultura</span> e o modo de vida americano.",
+                visaoGeralPara3: "Utilize os elementos interativos, como gráficos e seletores, para aprofundar seu conhecimento. Esperamos que esta jornada seja informativa e estimulante!",
+                startExploringBtn: "Comece Explorando as Regiões 🗺️",
+                curiosidadeVisaoGeralText: "Curiosidade!",
+                regioesTitle: "As Grandes Regiões Geográficas dos EUA",
+                regioesIntro: "Os Estados Unidos são um país de dimensões continentais, e sua geografia é frequentemente dividida em grandes regiões, cada uma com identidades culturais, econômicas e paisagísticas distintas. Explore abaixo para conhecer as particularidades de cada uma. Ao selecionar uma região, você verá suas características e um gráfico comparativo ilustrativo sobre a diversidade de ecossistemas.",
+                mapaConceitualTitle: "Clique em uma região no mapa para explorar:",
+                mapNordeste: "Nordeste",
+                mapSul: "Sul",
+                mapCentroOeste: "Centro-Oeste",
+                mapSudoeste: "Sudoeste",
+                mapOeste: "Oeste",
+                btnNordeste: "Nordeste",
+                btnSul: "Sul",
+                btnCentroOeste: "Centro-Oeste",
+                btnSudoeste: "Sudoeste",
+                btnOeste: "Oeste/Costa Oeste",
+                regioesChartTitle: "Comparativo Regional: Número de Ecossistemas Principais (Estimado)",
+                regioesChartSubtitle: "Este gráfico ilustra uma estimativa da diversidade de grandes ecossistemas por região. Clique nas regiões acima para atualizar.",
+                relevoHidrografiaTitle: "Relevo e Hidrografia dos EUA",
+                relevoHidrografiaIntro: "As formas do terreno (relevo) e a distribuição das águas (hidrografia) são elementos cruciais que definem as paisagens e influenciam o clima e a ocupação humana. Os EUA apresentam uma grande variedade, desde imponentes cadeias montanhosas a vastas planícies e extensos sistemas fluviais. Explore os botões abaixo para aprender sobre cada componente.",
+                btnMontanhas: "Montanhas",
+                btnPlanicies: "Grandes Planícies",
+                btnRiosLagos: "Rios e Lagos",
+                btnLitoral: "Litoral",
+                riosChartTitle: "Comparativo: Extensão de Rios Selecionados (Estimativa em km)",
+                riosChartSubtitle: "Este gráfico mostra a extensão aproximada de alguns dos principais rios dos EUA.",
+                curiosidadeRelevoText: "Curiosidade!",
+                geografiaCulturaTitle: "O Impacto da Geografia na Cultura Americana",
+                geografiaCulturaIntro: "A geografia de um lugar não é apenas um pano de fundo; ela é uma força ativa que molda profundamente como as pessoas vivem, trabalham, se relacionam e desenvolvem suas culturas. Nos Estados Unidos, a diversidade geográfica resultou em uma rica tapeçaria de estilos de vida, economias regionais e até mesmo desafios específicos. Clique nos tópicos abaixo para expandir e ver como diferentes aspectos geográficos influenciam a vida nos EUA.",
+                accClimaTitle: "Clima e Estilo de Vida",
+                accClimaContent: "Do calor úmido e subtropical do Sul, que influencia a arquitetura com varandas amplas e um ritmo de vida mais vagaroso, aos invernos rigorosos e nevados do Nordeste e partes do Centro-Oeste, que exigem preparação e moldam atividades de lazer como esqui e hóquei. Na Costa Oeste, climas mais amenos como o mediterrâneo na Califórnia favorecem atividades ao ar livre durante todo o ano. Essas variações climáticas afetam tudo, desde o tipo de agricultura possível até as roupas que as pessoas usam e as casas que constroem.",
+                accEconomiaTitle: "Economia Local",
+                accEconomiaContent: "A geografia é um fator determinante para as atividades econômicas. As vastas e férteis Grandes Planícies no Centro-Oeste tornam a região o 'celeiro' do país, com agricultura extensiva de grãos. Regiões costeiras, como o Nordeste e a Costa Oeste, historicamente se desenvolveram com base no comércio marítimo, pesca e, mais recentemente, turismo. A presença de recursos minerais, como carvão nos Apalaches ou petróleo no Texas e Alasca, impulsiona indústrias extrativas. O Sudoeste árido favorece a energia solar, enquanto as montanhas e florestas do Oeste atraem turismo e exploração madeireira.",
+                accDesenvolvimentoTitle: "Desenvolvimento Urbano",
+                accDesenvolvimentoContent: "A localização de muitas cidades americanas foi estrategicamente definida pela geografia. Portos naturais no Nordeste (Nova York, Boston) e na Costa Oeste (São Francisco, Seattle) permitiram o florescimento de grandes centros urbanos. Rios navegáveis como o Mississippi e o Ohio facilitaram o transporte e o comércio, levando ao crescimento de cidades em suas margens (St. Louis, Cincinnati). Em contraste, a expansão para o Oeste, com vastas extensões de terra, favoreceu um modelo de desenvolvimento mais disperso e dependente do automóvel em muitas cidades.",
+                accDesafiosTitle: "Desafios Naturais",
+                accDesafiosContent: "A diversidade geográfica também traz consigo uma variedade de desafios naturais. A Costa do Golfo e a Costa Leste são vulneráveis a furacões. O Centro-Oeste é conhecido como 'Tornado Alley' devido à frequência de tornados. A Califórnia e outras partes da Costa Oeste estão em zonas sismicamente ativas, sujeitas a terremotos. Incêndios florestais são uma ameaça crescente em áreas áridas e florestais do Oeste, especialmente durante períodos de seca. Esses desafios exigem planejamento, infraestrutura resiliente e sistemas de alerta precoce, moldando a forma como as comunidades se preparam e respondem a desastres.",
+                curiosidadeCulturaText: "Curiosidade!",
+                footerText: "&copy; <span id='currentYear'></span> Aplicação Interativa de Geografia. Conteúdo adaptado para fins educacionais.",
+                regioesData: {
+                    nordeste: {
+                        nome: "Nordeste 🏙️",
+                        descricao: "Berço da nação, o Nordeste é conhecido por suas cidades históricas como Boston e Nova York, costas recortadas, os Montes Apalaches e invernos rigorosos. Sua economia é diversificada, com forte presença em finanças, educação e tecnologia. Culturalmente, possui grande influência europeia e uma rica história colonial.",
+                        clima: "Temperado continental, com verões quentes e invernos frios e nevados.",
+                        economia: "Finanças, educação, saúde, tecnologia, turismo.",
+                        ecossistemas: 4,
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Nordeste"
+                    },
+                    sul: {
+                        nome: "Sul ☀️",
+                        descricao: "Com clima mais quente e úmido, o Sul apresenta planícies costeiras, pântanos e o icônico Rio Mississippi. Tem uma história rica e complexa, marcada pela agricultura (algodão, tabaco), e uma cultura vibrante que inclui o blues, jazz e uma culinária distinta. Recentemente, tem visto crescimento industrial e turístico.",
+                        clima: "Subtropical úmido, com verões quentes e úmidos e invernos amenos.",
+                        economia: "Agricultura, indústria (manufatura, automotiva), turismo, energia.",
+                        ecossistemas: 5,
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Sul"
+                    },
+                    "centro-oeste": {
+                        nome: "Centro-Oeste 🌾",
+                        descricao: "Conhecido como o 'celeiro dos EUA', o Centro-Oeste é dominado por vastas pradarias e campos de cultivo. Cidades como Chicago e Detroit são importantes centros industriais e de transporte. A agricultura é um pilar econômico, junto com a indústria manufatureira, especialmente a automobilística.",
+                        clima: "Continental, com grandes variações de temperatura entre verões quentes e invernos frios.",
+                        economia: "Agricultura (milho, soja, trigo), indústria (automobilística, maquinário), processamento de alimentos.",
+                        ecossistemas: 3,
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Centro-Oeste"
+                    },
+                    sudoeste: {
+                        nome: "Sudoeste 🏜️",
+                        descricao: "Caracterizado por paisagens áridas e semiáridas, o Sudoeste abriga desertos, cânions espetaculares como o Grand Canyon, e partes das Montanhas Rochosas. A cultura é uma rica mistura de influências nativas americanas, hispânicas e anglo-americanas. O turismo, a energia (solar, petróleo) e a tecnologia são setores importantes.",
+                        clima: "Árido e semiárido, com verões muito quentes e invernos amenos a frios, dependendo da altitude.",
+                        economia: "Turismo, energia (petróleo, gás, solar), agricultura irrigada, tecnologia.",
+                        ecossistemas: 6,
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Sudoeste"
+                    },
+                    oeste: {
+                        nome: "Oeste/Costa Oeste 🏞️",
+                        descricao: "Uma região de contrastes, com praias ensolaradas, montanhas imponentes (Rochosas, Sierra Nevada), florestas densas e atividade vulcânica. Cidades como Los Angeles e São Francisco são centros globais de inovação (Vale do Silício), entretenimento e comércio internacional. Possui uma grande diversidade de parques nacionais.",
+                        clima: "Variado: mediterrâneo na Califórnia, marítimo temperado no noroeste, alpino nas montanhas, desértico no interior.",
+                        economia: "Tecnologia, entretenimento, turismo, agricultura (especialmente na Califórnia), comércio internacional.",
+                        ecossistemas: 7,
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Oeste"
+                    }
+                },
+                relevoHidrografiaData: {
+                    montanhas: {
+                        titulo: "Cadeias de Montanhas ⛰️",
+                        texto: "Os EUA possuem duas grandes cadeias montanhosas principais: as <span class='font-semibold text-emerald-600'>Montanhas Rochosas</span> no oeste, mais jovens, altas e imponentes, e os <span class='font-semibold text-emerald-600'>Montes Apalaches</span> no leste, mais antigos, erodidos e de altitudes menores. Essas montanhas influenciam o clima (criando 'sombras de chuva'), a distribuição de recursos hídricos e os padrões de assentamento humano. Outras cadeias importantes incluem a Sierra Nevada e as Montanhas Cascade no Oeste.",
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Montanhas"
+                    },
+                    planicies: {
+                        titulo: "Grandes Planícies 🌾",
+                        texto: "Localizadas no coração do país, a leste das Montanhas Rochosas, as <span class='font-semibold text-emerald-600'>Grandes Planícies</span> são uma vasta extensão de terras relativamente planas ou suavemente onduladas. Historicamente cobertas por pradarias, hoje são uma das regiões agrícolas mais produtivas do mundo, essenciais para o cultivo de grãos como trigo e milho. Estendem-se do Canadá ao Texas.",
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Planicies"
+                    },
+                    "rios-lagos": {
+                        titulo: "Rios e Lagos 🌊",
+                        texto: "O sistema fluvial dos EUA é extenso. O <span class='font-semibold text-emerald-600'>Rio Mississippi</span>, junto com seus afluentes como o Missouri e o Ohio, forma uma das maiores bacias hidrográficas do mundo, crucial para o transporte e agricultura. No nordeste, os <span class='font-semibold text-emerald-600'>Grandes Lagos</span> (Superior, Michigan, Huron, Erie, Ontário) constituem a maior reserva de água doce superficial do planeta e são vitais para a navegação e indústria. Outros rios importantes incluem o Colorado no Sudoeste e o Columbia no Noroeste.",
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Rios+e+Lagos"
+                    },
+                    litoral: {
+                        titulo: "Litoral 🏖️",
+                        texto: "Os EUA possuem um litoral extenso e diversificado, banhado por três oceanos: Atlântico, Pacífico e Ártico, além do Golfo do México. A <span class='font-semibold text-emerald-600'>Costa Atlântica</span> varia de praias arenosas no sul a costas rochosas e recortadas no norte. A <span class='font-semibold text-emerald-600'>Costa do Pacífico</span> é conhecida por suas falésias, praias e a instabilidade geológica da Falha de San Andreas. O litoral do <span class='font-semibold text-emerald-600'>Golfo do México</span> é caracterizado por planícies costeiras baixas e deltas. Essas áreas costeiras são cruciais para o comércio, pesca, turismo e abrigam grandes centros populacionais.",
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Litoral"
+                    }
+                },
+                riosChartLabels: ['Missouri', 'Mississippi', 'Colorado', 'Ohio', 'Hudson'],
+                riosChartDatasetLabel: 'Extensão (km)',
+                regioesChartYAxisTitle: 'Número Estimado de Ecossistemas',
+                regioesChartXAxisTitle: 'Regiões',
+                riosChartXAxisTitle: 'Extensão Estimada (km)',
+                riosChartYAxisTitle: 'Rios',
+                curiosidades: {
+                    visaoGeral: {
+                        title: "Curiosidade sobre os EUA!",
+                        content: "Os Estados Unidos são o terceiro maior país do mundo em área total (terra e água), superados apenas pela Rússia e Canadá. Sua vasta extensão contribui para a incrível diversidade geográfica."
+                    },
+                    relevo: {
+                        title: "Curiosidade sobre o Relevo!",
+                        content: "O Monte Denali (anteriormente McKinley), no Alasca, é o pico mais alto da América do Norte, com 6.190 metros de altitude. Ele faz parte da Cordilheira do Alasca."
+                    },
+                    cultura: {
+                        title: "Curiosidade Cultural!",
+                        content: "A culinária regional nos EUA é fortemente influenciada pela geografia. Por exemplo, a culinária do Sul é conhecida por pratos como 'gumbo' e 'jambalaya', que se beneficiam dos frutos do mar e produtos agrícolas locais, enquanto o Centro-Oeste é famoso por seus pratos à base de carne e grãos."
+                    }
+                }
             },
-            sul: {
-                nome: "Sul ☀️",
-                descricao: "Com clima mais quente e úmido, o Sul apresenta planícies costeiras, pântanos e o icônico Rio Mississippi. Tem uma história rica e complexa, marcada pela agricultura (algodão, tabaco), e uma cultura vibrante que inclui o blues, jazz e uma culinária distinta. Recentemente, tem visto crescimento industrial e turístico.",
-                clima: "Subtropical úmido, com verões quentes e úmidos e invernos amenos.",
-                economia: "Agricultura, indústria (manufatura, automotiva), turismo, energia.",
-                ecossistemas: 5
-            },
-            "centro-oeste": {
-                nome: "Centro-Oeste 🌾",
-                descricao: "Conhecido como o 'celeiro dos EUA', o Centro-Oeste é dominado por vastas pradarias e campos de cultivo. Cidades como Chicago e Detroit são importantes centros industriais e de transporte. A agricultura é um pilar econômico, junto com a indústria manufatureira, especialmente a automobilística.",
-                clima: "Continental, com grandes variações de temperatura entre verões quentes e invernos frios.",
-                economia: "Agricultura (milho, soja, trigo), indústria (automobilística, maquinário), processamento de alimentos.",
-                ecossistemas: 3
-            },
-            sudoeste: {
-                nome: "Sudoeste 🏜️",
-                descricao: "Caracterizado por paisagens áridas e semiáridas, o Sudoeste abriga desertos, cânions espetaculares como o Grand Canyon, e partes das Montanhas Rochosas. A cultura é uma rica mistura de influências nativas americanas, hispânicas e anglo-americanas. O turismo, a energia (solar, petróleo) e a tecnologia são setores importantes.",
-                clima: "Árido e semiárido, com verões muito quentes e invernos amenos a frios, dependendo da altitude.",
-                economia: "Turismo, energia (petróleo, gás, solar), agricultura irrigada, tecnologia.",
-                ecossistemas: 6
-            },
-            oeste: {
-                nome: "Oeste/Costa Oeste 🏞️",
-                descricao: "Uma região de contrastes, com praias ensolaradas, montanhas imponentes (Rochosas, Sierra Nevada), florestas densas e atividade vulcânica. Cidades como Los Angeles e São Francisco são centros globais de inovação (Vale do Silício), entretenimento e comércio internacional. Possui uma grande diversidade de parques nacionais.",
-                clima: "Variado: mediterrâneo na Califórnia, marítimo temperado no noroeste, alpino nas montanhas, desértico no interior.",
-                economia: "Tecnologia, entretenimento, turismo, agricultura (especialmente na Califórnia), comércio internacional.",
-                ecossistemas: 7
-            }
-        };
-
-        const relevoHidrografiaData = {
-            montanhas: {
-                titulo: "Cadeias de Montanhas ⛰️",
-                texto: "Os EUA possuem duas grandes cadeias montanhosas principais: as <span class='font-semibold text-emerald-600'>Montanhas Rochosas</span> no oeste, mais jovens, altas e imponentes, e os <span class='font-semibold text-emerald-600'>Montes Apalaches</span> no leste, mais antigos, erodidos e de altitudes menores. Essas montanhas influenciam o clima (criando 'sombras de chuva'), a distribuição de recursos hídricos e os padrões de assentamento humano. Outras cadeias importantes incluem a Sierra Nevada e as Montanhas Cascade no Oeste."
-            },
-            planicies: {
-                titulo: "Grandes Planícies 🌾",
-                texto: "Localizadas no coração do país, a leste das Montanhas Rochosas, as <span class='font-semibold text-emerald-600'>Grandes Planícies</span> são uma vasta extensão de terras relativamente planas ou suavemente onduladas. Historicamente cobertas por pradarias, hoje são uma das regiões agrícolas mais produtivas do mundo, essenciais para o cultivo de grãos como trigo e milho. Estendem-se do Canadá ao Texas."
-            },
-            "rios-lagos": {
-                titulo: "Rios e Lagos 🌊",
-                texto: "O sistema fluvial dos EUA é extenso. O <span class='font-semibold text-emerald-600'>Rio Mississippi</span>, junto com seus afluentes como o Missouri e o Ohio, forma uma das maiores bacias hidrográficas do mundo, crucial para o transporte e agricultura. No nordeste, os <span class='font-semibold text-emerald-600'>Grandes Lagos</span> (Superior, Michigan, Huron, Erie, Ontário) constituem a maior reserva de água doce superficial do planeta e são vitais para a navegação e indústria. Outros rios importantes incluem o Colorado no Sudoeste e o Columbia no Noroeste."
-            },
-            litoral: {
-                titulo: "Litoral 🏖️",
-                texto: "Os EUA possuem um litoral extenso e diversificado, banhado por três oceanos: Atlântico, Pacífico e Ártico, além do Golfo do México. A <span class='font-semibold text-emerald-600'>Costa Atlântica</span> varia de praias arenosas no sul a costas rochosas e recortadas no norte. A <span class='font-semibold text-emerald-600'>Costa do Pacífico</span> é conhecida por suas falésias, praias e a instabilidade geológica da Falha de San Andreas. O litoral do <span class='font-semibold text-emerald-600'>Golfo do México</span> é caracterizado por planícies costeiras baixas e deltas. Essas áreas costeiras são cruciais para o comércio, pesca, turismo e abrigam grandes centros populacionais."
+            en: {
+                appTitle: "Interactive US Geography",
+                headerTitle: "Exploring the Geography of the USA 🇺🇸",
+                headerSubtitle: "An interactive journey through the landscapes and features that define a nation.",
+                navVisaoGeral: "Overview",
+                navRegioes: "Major Regions",
+                navRelevoHidrografia: "Relief and Hydrography",
+                navGeografiaCultura: "Geography and Culture",
+                visaoGeralTitle: "Welcome to the US Geography Exploration!",
+                visaoGeralPara1: "This interactive application was created to introduce you to the diversity and complexity of the geography of the United States. A country's geography is fundamental to understanding its history, culture, economy, and the challenges it faces. The USA, with its vast territory, is home to an incredible variety of landscapes, climates, and ecosystems.",
+                visaoGeralPara2: "Navigate through the tabs to discover the striking characteristics of the <span class='font-semibold text-emerald-600'>Major Regions</span>, explore the imposing <span class='font-semibold text-emerald-600'>Relief and Hydrography Formations</span>, and understand how <span class='font-semibold text-emerald-600'>Geography influences Culture</span> and the American way of life.",
+                visaoGeralPara3: "Use the interactive elements, such as charts and selectors, to deepen your knowledge. We hope this journey is informative and stimulating!",
+                startExploringBtn: "Start Exploring Regions 🗺️",
+                curiosidadeVisaoGeralText: "Did You Know?",
+                regioesTitle: "The Major Geographical Regions of the USA",
+                regioesIntro: "The United States is a continental country, and its geography is often divided into large regions, each with distinct cultural, economic, and landscape identities. Explore below to learn about the peculiarities of each. By selecting a region, you will see its characteristics and an illustrative comparative chart on ecosystem diversity.",
+                mapaConceitualTitle: "Click on a region on the map to explore:",
+                mapNordeste: "Northeast",
+                mapSul: "South",
+                mapCentroOeste: "Midwest",
+                mapSudoeste: "Southwest",
+                mapOeste: "West",
+                btnNordeste: "Northeast",
+                btnSul: "South",
+                btnCentroOeste: "Midwest",
+                btnSudoeste: "Southwest",
+                btnOeste: "West/West Coast",
+                regioesChartTitle: "Regional Comparison: Number of Major Ecosystems (Estimated)",
+                regioesChartSubtitle: "This chart illustrates an estimate of the diversity of major ecosystems per region. Click on the regions above to update.",
+                relevoHidrografiaTitle: "Relief and Hydrography of the USA",
+                relevoHidrografiaIntro: "Landforms (relief) and water distribution (hydrography) are crucial elements that define landscapes and influence climate and human occupation. The USA presents a wide variety, from imposing mountain ranges to vast plains and extensive river systems. Explore the buttons below to learn about each component.",
+                btnMontanhas: "Mountains",
+                btnPlanicies: "Great Plains",
+                btnRiosLagos: "Rivers and Lakes",
+                btnLitoral: "Coastline",
+                riosChartTitle: "Comparison: Selected River Lengths (Estimated in km)",
+                riosChartSubtitle: "This chart shows the approximate length of some of the main rivers in the USA.",
+                curiosidadeRelevoText: "Did You Know?",
+                geografiaCulturaTitle: "The Impact of Geography on American Culture",
+                geografiaCulturaIntro: "The geography of a place is not just a backdrop; it is an active force that profoundly shapes how people live, work, relate, and develop their cultures. In the United States, geographical diversity has resulted in a rich tapestry of lifestyles, regional economies, and even specific challenges. Click on the topics below to expand and see how different geographical aspects influence life in the USA.",
+                accClimaTitle: "Climate and Lifestyle",
+                accClimaContent: "From the hot, humid, subtropical climate of the South, which influences architecture with wide verandas and a slower pace of life, to the harsh, snowy winters of the Northeast and parts of the Midwest, which require preparation and shape leisure activities like skiing and hockey. On the West Coast, milder climates like the Mediterranean in California favor year-round outdoor activities. These climatic variations affect everything from the type of agriculture possible to the clothes people wear and the homes they build.",
+                accEconomiaTitle: "Local Economy",
+                accEconomiaContent: "Geography is a determining factor for economic activities. The vast and fertile Great Plains in the Midwest make the region the country's 'breadbasket,' with extensive grain agriculture. Coastal regions, such as the Northeast and the West Coast, have historically developed based on maritime trade, fishing, and, more recently, tourism. The presence of mineral resources, such as coal in the Appalachians or oil in Texas and Alaska, drives extractive industries. The arid Southwest favors solar energy, while the mountains and forests of the West attract tourism and logging.",
+                accDesenvolvimentoTitle: "Urban Development",
+                accDesenvolvimentoContent: "The location of many American cities was strategically defined by geography. Natural harbors in the Northeast (New York, Boston) and on the West Coast (San Francisco, Seattle) allowed for the flourishing of large urban centers. Navigable rivers like the Mississippi and Ohio facilitated transportation and trade, leading to the growth of cities along their banks (St. Louis, Cincinnati). In contrast, westward expansion, with vast stretches of land, favored a more dispersed, automobile-dependent development model in many cities.",
+                accDesafiosTitle: "Natural Challenges",
+                accDesafiosContent: "Geographical diversity also brings with it a variety of natural challenges. The Gulf Coast and East Coast are vulnerable to hurricanes. The Midwest is known as 'Tornado Alley' due to the frequency of tornadoes. California and other parts of the West Coast are in seismically active zones, subject to earthquakes. Wildfires are a growing threat in arid and forested areas of the West, especially during periods of drought. These challenges require planning, resilient infrastructure, and early warning systems, shaping how communities prepare for and respond to disasters.",
+                curiosidadeCulturaText: "Did You Know?",
+                footerText: "&copy; <span id='currentYear'></span> Interactive Geography Application. Content adapted for educational purposes.",
+                regioesData: {
+                    nordeste: {
+                        nome: "Northeast 🏙️",
+                        descricao: "The birthplace of the nation, the Northeast is known for its historic cities like Boston and New York, rugged coastlines, the Appalachian Mountains, and harsh winters. Its economy is diversified, with a strong presence in finance, education, and technology. Culturally, it has a strong European influence and a rich colonial history.",
+                        clima: "Continental temperate, with hot summers and cold, snowy winters.",
+                        economia: "Finance, education, healthcare, technology, tourism.",
+                        ecossistemas: 4,
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Northeast"
+                    },
+                    sul: {
+                        nome: "South ☀️",
+                        descricao: "With a warmer and humid climate, the South features coastal plains, swamps, and the iconic Mississippi River. It has a rich and complex history, marked by agriculture (cotton, tobacco), and a vibrant culture that includes blues, jazz, and distinct cuisine. Recently, it has seen industrial and tourism growth.",
+                        clima: "Humid subtropical, with hot, humid summers and mild winters.",
+                        economia: "Agriculture, industry (manufacturing, automotive), tourism, energy.",
+                        ecossistemas: 5,
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=South"
+                    },
+                    "centro-oeste": {
+                        nome: "Midwest 🌾",
+                        descricao: "Known as the 'breadbasket of the USA,' the Midwest is dominated by vast prairies and cultivated fields. Cities like Chicago and Detroit are important industrial and transportation hubs. Agriculture is an economic pillar, along with manufacturing, especially the automotive industry.",
+                        clima: "Continental, with large temperature variations between hot summers and cold winters.",
+                        economia: "Agriculture (corn, soybeans, wheat), industry (automotive, machinery), food processing.",
+                        ecossistemas: 3,
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Midwest"
+                    },
+                    sudoeste: {
+                        nome: "Southwest 🏜️",
+                        descricao: "Characterized by arid and semi-arid landscapes, the Southwest is home to deserts, spectacular canyons like the Grand Canyon, and parts of the Rocky Mountains. The culture is a rich blend of Native American, Hispanic, and Anglo-American influences. Tourism, energy (solar, oil), and technology are important sectors.",
+                        clima: "Arid and semi-arid, with very hot summers and mild to cold winters, depending on altitude.",
+                        economia: "Tourism, energy (oil, gas, solar), irrigated agriculture, technology.",
+                        ecossistemas: 6,
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Southwest"
+                    },
+                    oeste: {
+                        nome: "West/West Coast 🏞️",
+                        descricao: "A region of contrasts, with sunny beaches, imposing mountains (Rockies, Sierra Nevada), dense forests, and volcanic activity. Cities like Los Angeles and San Francisco are global centers of innovation (Silicon Valley), entertainment, and international trade. It has a great diversity of national parks.",
+                        clima: "Varied: Mediterranean in California, temperate maritime in the northwest, alpine in the mountains, desert in the interior.",
+                        economia: "Technology, entertainment, tourism, agriculture (especially in California), international trade.",
+                        ecossistemas: 7,
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=West"
+                    }
+                },
+                relevoHidrografiaData: {
+                    montanhas: {
+                        titulo: "Mountain Ranges ⛰️",
+                        texto: "The USA has two major mountain ranges: the <span class='font-semibold text-emerald-600'>Rocky Mountains</span> in the west, which are younger, taller, and more imposing, and the <span class='font-semibold text-emerald-600'>Appalachian Mountains</span> in the east, which are older, more eroded, and lower in altitude. These mountains influence climate (creating 'rain shadows'), water resource distribution, and human settlement patterns. Other important ranges include the Sierra Nevada and the Cascade Mountains in the West.",
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Mountains"
+                    },
+                    planicies: {
+                        titulo: "Great Plains 🌾",
+                        texto: "Located in the heart of the country, east of the Rocky Mountains, the <span class='font-semibold text-emerald-600'>Great Plains</span> are a vast expanse of relatively flat or gently rolling land. Historically covered by prairies, today they are one of the most productive agricultural regions in the world, essential for growing grains like wheat and corn. They extend from Canada to Texas.",
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Plains"
+                    },
+                    "rios-lagos": {
+                        titulo: "Rivers and Lakes 🌊",
+                        texto: "The US river system is extensive. The <span class='font-semibold text-emerald-600'>Mississippi River</span>, along with its tributaries like the Missouri and Ohio, forms one of the largest river basins in the world, crucial for transportation and agriculture. In the northeast, the <span class='font-semibold text-emerald-600'>Great Lakes</span> (Superior, Michigan, Huron, Erie, Ontario) constitute the largest fresh surface water reserve on the planet and are vital for navigation and industry. Other important rivers include the Colorado in the Southwest and the Columbia in the Northwest.",
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Rivers+and+Lakes"
+                    },
+                    litoral: {
+                        titulo: "Coastline 🏖️",
+                        texto: "The USA has an extensive and diverse coastline, bathed by three oceans: Atlantic, Pacific, and Arctic, in addition to the Gulf of Mexico. The <span class='font-semibold text-emerald-600'>Atlantic Coast</span> varies from sandy beaches in the south to rocky and rugged coastlines in the north. The <span class='font-semibold text-emerald-600'>Pacific Coast</span> is known for its cliffs, beaches, and the geological instability of the San Andreas Fault. The <span class='font-semibold text-emerald-600'>Gulf of Mexico</span> coastline is characterized by low coastal plains and deltas. These coastal areas are crucial for trade, fishing, tourism, and host large population centers.",
+                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Coastline"
+                    }
+                },
+                riosChartLabels: ['Missouri', 'Mississippi', 'Colorado', 'Ohio', 'Hudson'],
+                riosChartDatasetLabel: 'Length (km)',
+                regioesChartYAxisTitle: 'Estimated Number of Ecosystems',
+                regioesChartXAxisTitle: 'Regions',
+                riosChartXAxisTitle: 'Estimated Length (km)',
+                riosChartYAxisTitle: 'Rivers',
+                curiosidades: {
+                    visaoGeral: {
+                        title: "Curiosity about the USA!",
+                        content: "The United States is the third largest country in the world by total area (land and water), surpassed only by Russia and Canada. Its vast expanse contributes to its incredible geographical diversity."
+                    },
+                    relevo: {
+                        title: "Curiosity about Relief!",
+                        content: "Mount Denali (formerly McKinley), in Alaska, is the highest peak in North America, with an altitude of 6,190 meters. It is part of the Alaska Range."
+                    },
+                    cultura: {
+                        title: "Cultural Curiosity!",
+                        content: "Regional cuisine in the USA is strongly influenced by geography. For example, Southern cuisine is known for dishes like 'gumbo' and 'jambalaya,' which benefit from local seafood and agricultural products, while the Midwest is famous for its meat and grain-based dishes."
+                    }
+                }
             }
         };
         
         let regioesChartInstance = null;
         let riosChartInstance = null;
 
+        function updateTextContent() {
+            const lang = currentLanguage;
+            const data = contentData[lang];
+
+            document.getElementById('appTitle').textContent = data.appTitle;
+            document.getElementById('headerTitle').textContent = data.headerTitle;
+            document.getElementById('headerSubtitle').textContent = data.headerSubtitle;
+
+            document.getElementById('navVisaoGeral').textContent = data.navVisaoGeral;
+            document.getElementById('navRegioes').textContent = data.navRegioes;
+            document.getElementById('navRelevoHidrografia').textContent = data.navRelevoHidrografia;
+            document.getElementById('navGeografiaCultura').textContent = data.navGeografiaCultura;
+
+            document.getElementById('visaoGeralTitle').textContent = data.visaoGeralTitle;
+            document.getElementById('visaoGeralPara1').innerHTML = data.visaoGeralPara1;
+            document.getElementById('visaoGeralPara2').innerHTML = data.visaoGeralPara2;
+            document.getElementById('visaoGeralPara3').innerHTML = data.visaoGeralPara3;
+            document.getElementById('startExploringBtn').textContent = data.startExploringBtn;
+            document.getElementById('curiosidadeVisaoGeralText').textContent = data.curiosidadeVisaoGeralText;
+
+            document.getElementById('regioesTitle').textContent = data.regioesTitle;
+            document.getElementById('regioesIntro').innerHTML = data.regioesIntro;
+            document.getElementById('mapaConceitualTitle').textContent = data.mapaConceitualTitle;
+            document.getElementById('mapNordeste').textContent = data.mapNordeste;
+            document.getElementById('mapSul').textContent = data.mapSul;
+            document.getElementById('mapCentroOeste').textContent = data.mapCentroOeste;
+            document.getElementById('mapSudoeste').textContent = data.mapSudoeste;
+            document.getElementById('mapOeste').textContent = data.mapOeste;
+            document.getElementById('btnNordeste').textContent = data.btnNordeste;
+            document.getElementById('btnSul').textContent = data.btnSul;
+            document.getElementById('btnCentroOeste').textContent = data.btnCentroOeste;
+            document.getElementById('btnSudoeste').textContent = data.btnSudoeste;
+            document.getElementById('btnOeste').textContent = data.btnOeste;
+            document.getElementById('regioesChartTitle').textContent = data.regioesChartTitle;
+            document.getElementById('regioesChartSubtitle').textContent = data.regioesChartSubtitle;
+
+            document.getElementById('relevoHidrografiaTitle').textContent = data.relevoHidrografiaTitle;
+            document.getElementById('relevoHidrografiaIntro').innerHTML = data.relevoHidrografiaIntro;
+            document.getElementById('btnMontanhas').textContent = data.btnMontanhas;
+            document.getElementById('btnPlanicies').textContent = data.btnPlanicies;
+            document.getElementById('btnRiosLagos').textContent = data.btnRiosLagos;
+            document.getElementById('btnLitoral').textContent = data.btnLitoral;
+            document.getElementById('riosChartTitle').textContent = data.riosChartTitle;
+            document.getElementById('riosChartSubtitle').textContent = data.riosChartSubtitle;
+            document.getElementById('curiosidadeRelevoText').textContent = data.curiosidadeRelevoText;
+
+            document.getElementById('geografiaCulturaTitle').textContent = data.geografiaCulturaTitle;
+            document.getElementById('geografiaCulturaIntro').innerHTML = data.geografiaCulturaIntro;
+            document.getElementById('accClimaTitle').textContent = data.accClimaTitle;
+            document.getElementById('accClimaContent').innerHTML = data.accClimaContent;
+            document.getElementById('accEconomiaTitle').textContent = data.accEconomiaTitle;
+            document.getElementById('accEconomiaContent').innerHTML = data.accEconomiaContent;
+            document.getElementById('accDesenvolvimentoTitle').textContent = data.accDesenvolvimentoTitle;
+            document.getElementById('accDesenvolvimentoContent').innerHTML = data.accDesenvolvimentoContent;
+            document.getElementById('accDesafiosTitle').textContent = data.accDesafiosTitle;
+            document.getElementById('accDesafiosContent').innerHTML = data.accDesafiosContent;
+            document.getElementById('curiosidadeCulturaText').textContent = data.curiosidadeCulturaText;
+
+            document.getElementById('footerText').innerHTML = data.footerText.replace("<span id='currentYear'></span>", `<span id='currentYear'>${new Date().getFullYear()}</span>`);
+
+            // Update current active region/feature info to reflect language change
+            const activeRegionButton = document.querySelector('.region-button.active');
+            if (activeRegionButton) {
+                updateRegionInfo(activeRegionButton.dataset.region);
+            } else {
+                updateRegionInfo('nordeste'); // Default if no region is active
+            }
+
+            const activeFeatureButton = document.querySelector('.feature-button.active');
+            if (activeFeatureButton) {
+                updateFeatureInfo(activeFeatureButton.dataset.feature);
+            } else {
+                updateFeatureInfo('montanhas'); // Default if no feature is active
+            }
+        }
+
         function updateRegionInfo(regionKey) {
-            const data = regioesData[regionKey];
+            const data = contentData[currentLanguage].regioesData[regionKey];
             regionInfoDiv.innerHTML = `
-                <h3 class="text-2xl font-semibold text-emerald-700 mb-2">${data.nome}</h3>
-                <p class="mb-2"><strong class="text-stone-700">Descrição:</strong> ${data.descricao}</p>
-                <p class="mb-2"><strong class="text-stone-700">Clima:</strong> ${data.clima}</p>
-                <p><strong class="text-stone-700">Principais Setores Econômicos:</strong> ${data.economia}</p>
+                <img src="${data.imageUrl}" alt="${currentLanguage === 'pt' ? 'Imagem da região ' : 'Image of '}${data.nome.split(" ")[0]}" class="w-full md:w-1/3 h-auto rounded-md object-cover mb-4 md:mb-0">
+                <div class="md:w-2/3">
+                    <h3 class="text-2xl font-semibold text-emerald-700 mb-2">${data.nome}</h3>
+                    <p class="mb-2"><strong class="text-stone-700">${currentLanguage === 'pt' ? 'Descrição:' : 'Description:'}</strong> ${data.descricao}</p>
+                    <p class="mb-2"><strong class="text-stone-700">${currentLanguage === 'pt' ? 'Clima:' : 'Climate:'}</strong> ${data.clima}</p>
+                    <p><strong class="text-stone-700">${currentLanguage === 'pt' ? 'Principais Setores Econômicos:' : 'Main Economic Sectors:'}</strong> ${data.economia}</p>
+                </div>
             `;
             updateRegioesChart(regionKey);
+            highlightMapRegion(regionKey);
+            highlightRegionButton(regionKey);
         }
         
         function updateRegioesChart(selectedRegionKey) {
             const chartData = {
-                labels: Object.values(regioesData).map(r => r.nome.split(" ")[0]), // Pega só a primeira palavra pra encurtar
+                labels: Object.values(contentData[currentLanguage].regioesData).map(r => r.nome.split(" ")[0]),
                 datasets: [{
-                    label: 'Nº de Ecossistemas Principais (Estimado)',
-                    data: Object.values(regioesData).map(r => r.ecossistemas),
-                    backgroundColor: Object.keys(regioesData).map(key => key === selectedRegionKey ? '#059669' : '#d1d5db'), // emerald-600 for selected, gray-300 for others
-                    borderColor: Object.keys(regioesData).map(key => key === selectedRegionKey ? '#047857' : '#9ca3af'), // emerald-700 for selected, gray-400 for others
+                    label: contentData[currentLanguage].regioesChartDatasetLabel,
+                    data: Object.values(contentData.pt.regioesData).map(r => r.ecossistemas), // Data values remain constant
+                    backgroundColor: Object.keys(contentData.pt.regioesData).map(key => key === selectedRegionKey ? '#059669' : '#d1d5db'),
+                    borderColor: Object.keys(contentData.pt.regioesData).map(key => key === selectedRegionKey ? '#047857' : '#9ca3af'),
                     borderWidth: 1
                 }]
             };
 
             if (regioesChartInstance) {
                 regioesChartInstance.data = chartData;
+                regioesChartInstance.options.scales.y.title.text = contentData[currentLanguage].regioesChartYAxisTitle;
+                regioesChartInstance.options.scales.x.title.text = contentData[currentLanguage].regioesChartXAxisTitle;
                 regioesChartInstance.update();
             } else {
                 const ctx = document.getElementById('regioesChart').getContext('2d');
@@ -289,10 +740,10 @@
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                title: { display: true, text: 'Número Estimado de Ecossistemas' }
+                                title: { display: true, text: contentData[currentLanguage].regioesChartYAxisTitle }
                             },
                             x: {
-                                title: { display: true, text: 'Regiões' }
+                                title: { display: true, text: contentData[currentLanguage].regioesChartXAxisTitle }
                             }
                         },
                         plugins: {
@@ -317,56 +768,106 @@
             }
         }
         
+        function updateFeatureInfo(featureKey) {
+            const data = contentData[currentLanguage].relevoHidrografiaData[featureKey];
+            featureInfoDiv.innerHTML = `
+                <img src="${data.imageUrl}" alt="${currentLanguage === 'pt' ? 'Imagem de ' : 'Image of '}${data.titulo.split(" ")[0]}" class="w-full md:w-1/3 h-auto rounded-md object-cover mb-4 md:mb-0">
+                <div class="md:w-2/3">
+                    <h3 class="text-2xl font-semibold text-emerald-700 mb-2">${data.titulo}</h3>
+                    <p class="leading-relaxed">${data.texto}</p>
+                </div>
+            `;
+            if (featureKey === 'rios-lagos') {
+                riosChartContainer.classList.remove('hidden');
+                createRiosChart();
+            } else {
+                riosChartContainer.classList.add('hidden');
+            }
+            highlightFeatureButton(featureKey);
+        }
+
         function createRiosChart() {
             const riosData = {
-                labels: ['Missouri', 'Mississippi', 'Colorado', 'Ohio', 'Hudson'],
+                labels: contentData[currentLanguage].riosChartLabels,
                 datasets: [{
-                    label: 'Extensão (km)',
-                    data: [3767, 3730, 2330, 1579, 507], // Dados ilustrativos
-                    backgroundColor: ['#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#64748b'], // blue, emerald, orange, violet, slate
+                    label: contentData[currentLanguage].riosChartDatasetLabel,
+                    data: [3767, 3730, 2330, 1579, 507], // Data values remain constant
+                    backgroundColor: ['#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#64748b'],
                     borderColor: ['#2563eb', '#059669', '#ea580c', '#7c3aed', '#475569'],
                     borderWidth: 1
                 }]
             };
             if (riosChartInstance) {
-                riosChartInstance.destroy();
-            }
-            const ctx = document.getElementById('riosChart').getContext('2d');
-            riosChartInstance = new Chart(ctx, {
-                type: 'bar', // Changed to 'bar' for better label visibility with fewer items
-                data: riosData,
-                options: {
-                    indexAxis: 'y', // Makes it a horizontal bar chart
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            title: { display: true, text: 'Extensão Estimada (km)' }
+                riosChartInstance.data = riosData;
+                riosChartInstance.options.scales.x.title.text = contentData[currentLanguage].riosChartXAxisTitle;
+                riosChartInstance.options.scales.y.title.text = contentData[currentLanguage].riosChartYAxisTitle;
+                riosChartInstance.update();
+            } else {
+                const ctx = document.getElementById('riosChart').getContext('2d');
+                riosChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: riosData,
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: { display: true, text: contentData[currentLanguage].riosChartXAxisTitle }
+                            },
+                            y: {
+                                title: { display: true, text: contentData[currentLanguage].riosChartYAxisTitle }
+                            }
                         },
-                        y: {
-                             title: { display: true, text: 'Rios' }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                         tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.x !== null) {
+                                            label += context.parsed.x + ' km';
+                                        }
+                                        return label;
                                     }
-                                    if (context.parsed.x !== null) {
-                                        label += context.parsed.x + ' km';
-                                    }
-                                    return label;
                                 }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
+        }
+
+        function highlightRegionButton(regionKey) {
+            regionButtons.forEach(btn => btn.classList.remove('active', 'bg-sky-600', 'text-white'));
+            regionButtons.forEach(btn => btn.classList.add('bg-stone-200'));
+            const targetButton = document.querySelector(`.region-button[data-region="${regionKey}"]`);
+            if (targetButton) {
+                targetButton.classList.add('active', 'bg-sky-600', 'text-white');
+                targetButton.classList.remove('bg-stone-200');
+            }
+        }
+
+        function highlightFeatureButton(featureKey) {
+            featureButtons.forEach(btn => btn.classList.remove('active', 'bg-sky-600', 'text-white'));
+            featureButtons.forEach(btn => btn.classList.add('bg-stone-200'));
+            const targetButton = document.querySelector(`.feature-button[data-feature="${featureKey}"]`);
+            if (targetButton) {
+                targetButton.classList.add('active', 'bg-sky-600', 'text-white');
+                targetButton.classList.remove('bg-stone-200');
+            }
+        }
+
+        function highlightMapRegion(regionKey) {
+            conceptualMapRegions.forEach(item => item.classList.remove('active-map-region'));
+            const targetMapRegion = document.querySelector(`.map-region-item[data-map-region="${regionKey}"]`);
+            if (targetMapRegion) {
+                targetMapRegion.classList.add('active-map-region');
+            }
         }
 
         tabs.forEach(tab => {
@@ -377,8 +878,20 @@
                 tabContents.forEach(content => {
                     if (content.id === targetTab) {
                         content.classList.remove('hidden');
-                        if (targetTab === 'regioes' && !regioesChartInstance) {
-                             updateRegionInfo('nordeste'); // Initialize with Nordeste
+                        if (targetTab === 'regioes') {
+                             const activeRegionButton = document.querySelector('.region-button.active');
+                             if (activeRegionButton) {
+                                updateRegionInfo(activeRegionButton.dataset.region);
+                             } else {
+                                updateRegionInfo('nordeste');
+                             }
+                        } else if (targetTab === 'relevo-hidrografia') {
+                            const activeFeatureButton = document.querySelector('.feature-button.active');
+                            if (activeFeatureButton) {
+                                updateFeatureInfo(activeFeatureButton.dataset.feature);
+                            } else {
+                                updateFeatureInfo('montanhas');
+                            }
                         }
                     } else {
                         content.classList.add('hidden');
@@ -389,33 +902,20 @@
 
         regionButtons.forEach(button => {
             button.addEventListener('click', () => {
-                regionButtons.forEach(btn => btn.classList.remove('active', 'bg-sky-600', 'text-white'));
-                regionButtons.forEach(btn => btn.classList.add('bg-stone-200'));
-                button.classList.add('active', 'bg-sky-600', 'text-white');
-                button.classList.remove('bg-stone-200');
                 updateRegionInfo(button.dataset.region);
             });
         });
         
         featureButtons.forEach(button => {
             button.addEventListener('click', () => {
-                featureButtons.forEach(btn => btn.classList.remove('active', 'bg-sky-600', 'text-white'));
-                featureButtons.forEach(btn => btn.classList.add('bg-stone-200'));
-                button.classList.add('active', 'bg-sky-600', 'text-white');
-                button.classList.remove('bg-stone-200');
-                
-                const featureKey = button.dataset.feature;
-                const data = relevoHidrografiaData[featureKey];
-                featureInfoDiv.innerHTML = `
-                    <h3 class="text-2xl font-semibold text-emerald-700 mb-2">${data.titulo}</h3>
-                    <p class="leading-relaxed">${data.texto}</p>
-                `;
-                if (featureKey === 'rios-lagos') {
-                    riosChartContainer.classList.remove('hidden');
-                    if (!riosChartInstance) createRiosChart(); else riosChartInstance.update();
-                } else {
-                    riosChartContainer.classList.add('hidden');
-                }
+                updateFeatureInfo(button.dataset.feature);
+            });
+        });
+
+        conceptualMapRegions.forEach(item => {
+            item.addEventListener('click', () => {
+                const regionKey = item.dataset.mapRegion;
+                updateRegionInfo(regionKey);
             });
         });
 
@@ -436,18 +936,37 @@
             });
         });
 
-        // Initialize default views
-        updateRegionInfo('nordeste'); // Default for Regiões tab
-        // Default for Relevo e Hidrografia tab
-        const defaultFeature = relevoHidrografiaData['montanhas'];
-        featureInfoDiv.innerHTML = `
-            <h3 class="text-2xl font-semibold text-emerald-700 mb-2">${defaultFeature.titulo}</h3>
-            <p class="leading-relaxed">${defaultFeature.texto}</p>
-        `;
-        document.querySelector('[data-feature="montanhas"]').classList.add('active', 'bg-sky-600', 'text-white');
-        document.querySelector('[data-feature="montanhas"]').classList.remove('bg-stone-200');
+        // Modal functions
+        function openModal(titleKey, contentKey) {
+            modalTitle.textContent = contentData[currentLanguage].curiosidades[titleKey].title;
+            modalContent.textContent = contentData[currentLanguage].curiosidades[contentKey].content;
+            curiosidadeModal.classList.add('open');
+        }
+
+        function closeModal() {
+            curiosidadeModal.classList.remove('open');
+        }
+
+        curiosidadeVisaoGeralBtn.addEventListener('click', () => openModal('visaoGeral', 'visaoGeral'));
+        curiosidadeRelevoBtn.addEventListener('click', () => openModal('relevo', 'relevo'));
+        curiosidadeCulturaBtn.addEventListener('click', () => openModal('cultura', 'cultura'));
+        modalCloseButton.addEventListener('click', closeModal);
+        curiosidadeModal.addEventListener('click', (event) => {
+            if (event.target === curiosidadeModal) {
+                closeModal();
+            }
+        });
 
 
+        languageSelect.addEventListener('change', (event) => {
+            currentLanguage = event.target.value;
+            updateTextContent();
+        });
+
+        // Initialize default views and content
+        updateTextContent(); // Call once to set initial language
+        // The click event on the default tab will handle initial region/feature info
+        document.querySelector('[data-tab="visao-geral"]').click();
     </script>
 </body>
 </html>
