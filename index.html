@@ -6,16 +6,9 @@
     <title id="appTitle">Geografia Interativa dos EUA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Visualization & Content Choices:
-        - Grandes Regiões: Report Info (Regional descriptions) -> Goal (Compare regions) -> Viz (Text + Illustrative Chart.js Bar Chart: 'Número de Ecossistemas Principais (Estimado)' + Placeholder Images + Interactive Conceptual Map) -> Interaction (Region selection updates content and chart, map click updates content and highlights) -> Justification (Visual comparison, focused info, and intuitive spatial selection) -> Library (Chart.js, HTML/CSS for map).
-        - Relevo e Hidrografia (Rios e Lagos): Report Info (Major rivers) -> Goal (Inform and compare features) -> Viz (Text + Chart.js Horizontal Bar Chart: River Lengths - illustrative + Placeholder Images) -> Interaction (Chart display within section, feature selection updates content) -> Justification (Quantitative comparison, visual context) -> Library (Chart.js).
-        - General: Unicode icons (⛰️, 🌊, ☀️, 🏙️, 🌾, 🏜️) for visual cues. Textual content from report adapted for SPA sections.
-        - Language Toggle: Added a language selector to switch all textual content and chart labels between Portuguese and English.
-        - "Did You Know?" Modals: Small clickable buttons reveal interesting facts in a modal overlay, adding a layer of discovery.
-        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
-            font-family: 'Inter', sans-serif; /* Tailwind's default sans-serif is often Inter-like */
+            font-family: 'Inter', sans-serif;
         }
         .tab-button.active {
             border-bottom-width: 4px;
@@ -44,18 +37,17 @@
         .chart-container {
             position: relative;
             width: 100%;
-            max-width: 600px; /* max-w-2xl equivalent */
+            max-width: 600px;
             margin-left: auto;
             margin-right: auto;
-            height: 320px; /* h-80 */
+            height: 320px;
             max-height: 400px;
         }
         @media (min-width: 640px) { /* sm */
             .chart-container {
-                height: 384px; /* h-96 */
+                height: 384px;
             }
         }
-        /* Modal Styles */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -99,12 +91,11 @@
             cursor: pointer;
             color: #ef4444; /* red-500 */
         }
-        /* Conceptual Map Styles */
         .conceptual-map-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* Adjust columns for visual representation */
+            grid-template-columns: repeat(3, 1fr);
             gap: 0.5rem;
-            max-width: 400px; /* Constrain map width */
+            max-width: 400px;
             margin: 0 auto 1.5rem auto;
             border: 1px solid #d1d5db; /* stone-300 */
             border-radius: 0.5rem;
@@ -132,14 +123,13 @@
             font-weight: bold;
             border-color: #047857; /* emerald-700 */
         }
-        /* Specific grid layout for map-like appearance */
         .map-region-item[data-map-region="nordeste"] { grid-column: 3; grid-row: 1; }
         .map-region-item[data-map-region="centro-oeste"] { grid-column: 2; grid-row: 2; }
         .map-region-item[data-map-region="oeste"] { grid-column: 1; grid-row: 2; }
         .map-region-item[data-map-region="sudoeste"] { grid-column: 1 / span 2; grid-row: 3; }
         .map-region-item[data-map-region="sul"] { grid-column: 3; grid-row: 2 / span 2; }
-
-        @media (max-width: 639px) { /* Adjust map for smaller screens */
+        
+        @media (max-width: 639px) {
             .conceptual-map-grid {
                 grid-template-columns: repeat(2, 1fr);
                 max-width: 300px;
@@ -150,10 +140,51 @@
             .map-region-item[data-map-region="sudoeste"] { grid-column: 2; grid-row: 2; }
             .map-region-item[data-map-region="sul"] { grid-column: 1 / span 2; grid-row: 3; }
         }
+
+        /* Quiz Styles */
+        .quiz-option-button {
+            background-color: #f3f4f6; /* gray-100 */
+            border: 1px solid #d1d5db; /* stone-300 */
+            color: #374151; /* gray-700 */
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            text-align: left;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+            cursor: pointer;
+            width: 100%;
+        }
+        .quiz-option-button:hover {
+            background-color: #e5e7eb; /* gray-200 */
+        }
+        .quiz-option-button.selected {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            border-color: #2563eb; /* blue-600 */
+        }
+        .quiz-option-button.correct {
+            background-color: #10b981; /* emerald-500 */
+            color: white;
+            border-color: #059669; /* emerald-600 */
+        }
+        .quiz-option-button.incorrect {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            border-color: #dc2626; /* red-600 */
+        }
+        .quiz-option-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        #feedback-text.correct {
+            color: #059669; /* emerald-600 */
+        }
+        #feedback-text.incorrect {
+            color: #dc2626; /* red-600 */
+        }
+
     </style>
 </head>
 <body class="bg-stone-100 text-stone-800">
-
     <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-7xl">
         <header class="mb-8 text-center relative">
             <h1 id="headerTitle" class="text-4xl md:text-5xl font-bold text-sky-700">Explorando a Geografia dos EUA 🇺🇸</h1>
@@ -171,6 +202,7 @@
             <button data-tab="regioes" class="tab-button text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors"><span id="navRegioes">Grandes Regiões</span></button>
             <button data-tab="relevo-hidrografia" class="tab-button text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors"><span id="navRelevoHidrografia">Relevo e Hidrografia</span></button>
             <button data-tab="geografia-cultura" class="tab-button text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors"><span id="navGeografiaCultura">Geografia e Cultura</span></button>
+            <button data-tab="quiz" class="tab-button text-lg font-medium py-3 px-4 sm:px-6 hover:bg-stone-200 transition-colors"><span id="navQuiz">Quiz Interativo</span></button>
         </nav>
 
         <main>
@@ -187,7 +219,7 @@
                 </p>
                  <div class="mt-6 text-center">
                     <button id="startExploringBtn" onclick="document.querySelector('[data-tab=\'regioes\']').click()" class="bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-sky-700 transition-colors shadow-md">
-                        Comece Explorando as Regiões 🗺️
+                        <span id="textStartExploringBtn">Comece Explorando as Regiões 🗺️</span>
                     </button>
                 </div>
                 <div class="mt-8 text-center">
@@ -202,7 +234,6 @@
                 <p id="regioesIntro" class="mb-6 text-lg leading-relaxed">
                     Os Estados Unidos são um país de dimensões continentais, e sua geografia é frequentemente dividida em grandes regiões, cada uma com identidades culturais, econômicas e paisagísticas distintas. Explore abaixo para conhecer as particularidades de cada uma. Ao selecionar uma região, você verá suas características e um gráfico comparativo ilustrativo sobre a diversidade de ecossistemas.
                 </p>
-
                 <h3 id="mapaConceitualTitle" class="text-xl font-semibold text-emerald-700 mb-3 text-center">Clique em uma região no mapa para explorar:</h3>
                 <div class="conceptual-map-grid mb-6">
                     <div class="map-region-item" data-map-region="nordeste"><span id="mapNordeste">Nordeste</span></div>
@@ -211,7 +242,6 @@
                     <div class="map-region-item" data-map-region="sudoeste"><span id="mapSudoeste">Sudoeste</span></div>
                     <div class="map-region-item" data-map-region="sul"><span id="mapSul">Sul</span></div>
                 </div>
-
                 <div class="mb-6 flex flex-wrap justify-center gap-2">
                     <button data-region="nordeste" class="region-button active bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 transition-colors"><span id="btnNordeste">Nordeste</span> 🏙️</button>
                     <button data-region="sul" class="region-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors"><span id="btnSul">Sul</span> ☀️</button>
@@ -219,7 +249,6 @@
                     <button data-region="sudoeste" class="region-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors"><span id="btnSudoeste">Sudoeste</span> 🏜️</button>
                     <button data-region="oeste" class="region-button py-2 px-4 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors"><span id="btnOeste">Oeste/Costa Oeste</span> 🏞️</button>
                 </div>
-
                 <div id="region-info" class="mb-6 p-4 border border-stone-300 rounded-lg bg-stone-50 min-h-[200px] flex flex-col md:flex-row items-center md:items-start gap-4">
                     </div>
                 <h3 id="regioesChartTitle" class="text-2xl font-semibold text-emerald-700 mb-3 text-center">Comparativo Regional: Número de Ecossistemas Principais (Estimado)</h3>
@@ -305,6 +334,41 @@
                     </button>
                 </div>
             </section>
+
+            <section id="quiz" class="tab-content hidden bg-white p-6 rounded-lg shadow-lg">
+                <h2 id="quizSectionTitle" class="text-3xl font-semibold text-sky-600 mb-6">Quiz Interativo de Geografia</h2>
+                <p id="quizIntroText" class="mb-6 text-lg leading-relaxed">Teste seus conhecimentos sobre a geografia dos Estados Unidos!</p>
+            
+                <div id="quiz-area" class="bg-stone-50 p-4 sm:p-6 rounded-lg shadow">
+                    <div id="question-container" class="mb-6">
+                        <p id="question-text" class="text-xl font-semibold text-stone-700"></p>
+                        <p id="question-counter" class="text-sm text-stone-500 mt-1"></p>
+                    </div>
+            
+                    <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                        </div>
+            
+                    <div id="feedback-container" class="mb-6 min-h-[2.5rem]">
+                        <p id="feedback-text" class="text-lg font-medium"></p>
+                    </div>
+            
+                    <div class="text-center mb-6">
+                        <button id="quiz-action-button" class="bg-sky-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-sky-700 transition-colors shadow-md disabled:opacity-50" disabled>
+                            <span id="quizActionButtonText"></span>
+                        </button>
+                    </div>
+            
+                    <div id="score-container" class="hidden text-center">
+                        <h3 id="quizScoreTitleText" class="text-2xl font-semibold text-emerald-700 mb-3"></h3>
+                        <p id="final-score-text" class="text-3xl font-bold text-sky-600 mb-4"></p>
+                        <p id="quizScoreMessageText" class="text-lg text-stone-600 mb-6"></p>
+                        <button id="restart-quiz-button" class="bg-emerald-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-emerald-700 transition-colors shadow-md">
+                            <span id="quizRestartButtonText"></span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
         </main>
 
         <footer class="mt-12 pt-6 border-t-2 border-stone-300 text-center text-stone-600">
@@ -321,6 +385,7 @@
     </div>
 
     <script>
+        // DOM Elements
         const tabs = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
         const regionButtons = document.querySelectorAll('.region-button');
@@ -340,10 +405,32 @@
         const curiosidadeRelevoBtn = document.getElementById('curiosidadeRelevoBtn');
         const curiosidadeCulturaBtn = document.getElementById('curiosidadeCulturaBtn');
 
-        let currentLanguage = 'pt'; // Default language
+        // Quiz DOM Elements
+        const quizArea = document.getElementById('quiz-area');
+        const questionContainer = document.getElementById('question-container');
+        const questionTextEl = document.getElementById('question-text');
+        const questionCounterEl = document.getElementById('question-counter');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackContainer = document.getElementById('feedback-container');
+        const feedbackTextEl = document.getElementById('feedback-text');
+        const quizActionButton = document.getElementById('quiz-action-button');
+        const quizActionButtonTextEl = document.getElementById('quizActionButtonText');
+        const scoreContainer = document.getElementById('score-container');
+        const quizScoreTitleTextEl = document.getElementById('quizScoreTitleText');
+        const finalScoreTextEl = document.getElementById('final-score-text');
+        const quizScoreMessageTextEl = document.getElementById('quizScoreMessageText');
+        const restartQuizButton = document.getElementById('restart-quiz-button');
+        const quizRestartButtonTextEl = document.getElementById('quizRestartButtonText');
 
+
+        let currentLanguage = 'pt'; // Default language
         document.getElementById('currentYear').textContent = new Date().getFullYear();
 
+        // --- Charts (Global Variables) ---
+        let regioesChartInstance = null;
+        let riosChartInstance = null;
+
+        // --- Content Data ---
         const contentData = {
             pt: {
                 appTitle: "Geografia Interativa dos EUA",
@@ -353,33 +440,23 @@
                 navRegioes: "Grandes Regiões",
                 navRelevoHidrografia: "Relevo e Hidrografia",
                 navGeografiaCultura: "Geografia e Cultura",
+                navQuiz: "Quiz Interativo",
                 visaoGeralTitle: "Bem-vindo à Exploração Geográfica dos EUA!",
                 visaoGeralPara1: "Esta aplicação interativa foi criada para apresentar a você a diversidade e a complexidade da geografia dos Estados Unidos. A geografia de um país é fundamental para entender sua história, cultura, economia e os desafios que enfrenta. Os EUA, com sua vasta extensão territorial, abrigam uma incrível variedade de paisagens, climas e ecossistemas.",
                 visaoGeralPara2: "Navegue pelas abas para descobrir as características marcantes das <span class='font-semibold text-emerald-600'>Grandes Regiões</span>, explorar as imponentes <span class='font-semibold text-emerald-600'>Formações de Relevo e Hidrografia</span>, e entender como a <span class='font-semibold text-emerald-600'>Geografia influencia a Cultura</span> e o modo de vida americano.",
                 visaoGeralPara3: "Utilize os elementos interativos, como gráficos e seletores, para aprofundar seu conhecimento. Esperamos que esta jornada seja informativa e estimulante!",
-                startExploringBtn: "Comece Explorando as Regiões 🗺️",
+                textStartExploringBtn: "Comece Explorando as Regiões 🗺️",
                 curiosidadeVisaoGeralText: "Curiosidade!",
                 regioesTitle: "As Grandes Regiões Geográficas dos EUA",
                 regioesIntro: "Os Estados Unidos são um país de dimensões continentais, e sua geografia é frequentemente dividida em grandes regiões, cada uma com identidades culturais, econômicas e paisagísticas distintas. Explore abaixo para conhecer as particularidades de cada uma. Ao selecionar uma região, você verá suas características e um gráfico comparativo ilustrativo sobre a diversidade de ecossistemas.",
                 mapaConceitualTitle: "Clique em uma região no mapa para explorar:",
-                mapNordeste: "Nordeste",
-                mapSul: "Sul",
-                mapCentroOeste: "Centro-Oeste",
-                mapSudoeste: "Sudoeste",
-                mapOeste: "Oeste",
-                btnNordeste: "Nordeste",
-                btnSul: "Sul",
-                btnCentroOeste: "Centro-Oeste",
-                btnSudoeste: "Sudoeste",
-                btnOeste: "Oeste/Costa Oeste",
+                mapNordeste: "Nordeste", mapSul: "Sul", mapCentroOeste: "Centro-Oeste", mapSudoeste: "Sudoeste", mapOeste: "Oeste",
+                btnNordeste: "Nordeste", btnSul: "Sul", btnCentroOeste: "Centro-Oeste", btnSudoeste: "Sudoeste", btnOeste: "Oeste/Costa Oeste",
                 regioesChartTitle: "Comparativo Regional: Número de Ecossistemas Principais (Estimado)",
                 regioesChartSubtitle: "Este gráfico ilustra uma estimativa da diversidade de grandes ecossistemas por região. Clique nas regiões acima para atualizar.",
                 relevoHidrografiaTitle: "Relevo e Hidrografia dos EUA",
                 relevoHidrografiaIntro: "As formas do terreno (relevo) e a distribuição das águas (hidrografia) são elementos cruciais que definem as paisagens e influenciam o clima e a ocupação humana. Os EUA apresentam uma grande variedade, desde imponentes cadeias montanhosas a vastas planícies e extensos sistemas fluviais. Explore os botões abaixo para aprender sobre cada componente.",
-                btnMontanhas: "Montanhas",
-                btnPlanicies: "Grandes Planícies",
-                btnRiosLagos: "Rios e Lagos",
-                btnLitoral: "Litoral",
+                btnMontanhas: "Montanhas", btnPlanicies: "Grandes Planícies", btnRiosLagos: "Rios e Lagos", btnLitoral: "Litoral",
                 riosChartTitle: "Comparativo: Extensão de Rios Selecionados (Estimativa em km)",
                 riosChartSubtitle: "Este gráfico mostra a extensão aproximada de alguns dos principais rios dos EUA.",
                 curiosidadeRelevoText: "Curiosidade!",
@@ -394,579 +471,743 @@
                 accDesafiosTitle: "Desafios Naturais",
                 accDesafiosContent: "A diversidade geográfica também traz consigo uma variedade de desafios naturais. A Costa do Golfo e a Costa Leste são vulneráveis a furacões. O Centro-Oeste é conhecido como 'Tornado Alley' devido à frequência de tornados. A Califórnia e outras partes da Costa Oeste estão em zonas sismicamente ativas, sujeitas a terremotos. Incêndios florestais são uma ameaça crescente em áreas áridas e florestais do Oeste, especialmente durante períodos de seca. Esses desafios exigem planejamento, infraestrutura resiliente e sistemas de alerta precoce, moldando a forma como as comunidades se preparam e respondem a desastres.",
                 curiosidadeCulturaText: "Curiosidade!",
-                footerText: "&copy; <span id='currentYear'></span> Aplicação Interativa de Geografia. Conteúdo adaptado para fins educacionais.",
-                regioesData: {
-                    nordeste: {
-                        nome: "Nordeste 🏙️",
-                        descricao: "Berço da nação, o Nordeste é conhecido por suas cidades históricas como Boston e Nova York, costas recortadas, os Montes Apalaches e invernos rigorosos. Sua economia é diversificada, com forte presença em finanças, educação e tecnologia. Culturalmente, possui grande influência europeia e uma rica história colonial.",
-                        clima: "Temperado continental, com verões quentes e invernos frios e nevados.",
-                        economia: "Finanças, educação, saúde, tecnologia, turismo.",
-                        ecossistemas: 4,
-                        imageUrl: "images/Times Square.jpeg"
-                    },
-                    sul: {
-                        nome: "Sul ☀️",
-                        descricao: "Com clima mais quente e úmido, o Sul apresenta planícies costeiras, pântanos e o icônico Rio Mississippi. Tem uma história rica e complexa, marcada pela agricultura (algodão, tabaco), e uma cultura vibrante que inclui o blues, jazz e uma culinária distinta. Recentemente, tem visto crescimento industrial e turístico.",
-                        clima: "Subtropical úmido, com verões quentes e úmidos e invernos amenos.",
-                        economia: "Agricultura, indústria (manufatura, automotiva), turismo, energia.",
-                        ecossistemas: 5,
-                        imageUrl: "images/Jonesborough, Tennessee.jpeg"
-                    },
-                    "centro-oeste": {
-                        nome: "Centro-Oeste 🌾",
-                        descricao: "Conhecido como o 'celeiro dos EUA', o Centro-Oeste é dominado por vastas pradarias e campos de cultivo. Cidades como Chicago e Detroit são importantes centros industriais e de transporte. A agricultura é um pilar econômico, junto com a indústria manufatureira, especialmente a automobilística.",
-                        clima: "Continental, com grandes variações de temperatura entre verões quentes e invernos frios.",
-                        economia: "Agricultura (milho, soja, trigo), indústria (automobilística, maquinário), processamento de alimentos.",
-                        ecossistemas: 3,
-                        imageUrl: "images/American Chicago.jpeg"
-                    },
-                    sudoeste: {
-                        nome: "Sudoeste 🏜️",
-                        descricao: "Caracterizado por paisagens áridas e semiáridas, o Sudoeste abriga desertos, cânions espetaculares como o Grand Canyon, e partes das Montanhas Rochosas. A cultura é uma rica mistura de influências nativas americanas, hispânicas e anglo-americanas. O turismo, a energia (solar, petróleo) e a tecnologia são setores importantes.",
-                        clima: "Árido e semiárido, com verões muito quentes e invernos amenos a frios, dependendo da altitude.",
-                        economia: "Turismo, energia (petróleo, gás, solar), agricultura irrigada, tecnologia.",
-                        ecossistemas: 6,
-                        imageUrl: "images/GRAND CANYON ULUSAL PARKI  SOUTH RIM  AZ.jpeg"
-                    },
-                    oeste: {
-                        nome: "Oeste/Costa Oeste 🏞️",
-                        descricao: "Uma região de contrastes, com praias ensolaradas, montanhas imponentes (Rochosas, Sierra Nevada), florestas densas e atividade vulcânica. Cidades como Los Angeles e São Francisco são centros globais de inovação (Vale do Silício), entretenimento e comércio internacional. Possui uma grande diversidade de parques nacionais.",
-                        clima: "Variado: mediterrâneo na Califórnia, marítimo temperado no noroeste, alpino nas montanhas, desértico no interior.",
-                        economia: "Tecnologia, entretenimento, turismo, agricultura (especialmente na Califórnia), comércio internacional.",
-                        ecossistemas: 7,
-                        imageUrl: "images/download (21).jpeg"
-                    }
-                },
-                relevoHidrografiaData: {
-                    montanhas: {
-                        titulo: "Cadeias de Montanhas ⛰️",
-                        texto: "Os EUA possuem duas grandes cadeias montanhosas principais: as <span class='font-semibold text-emerald-600'>Montanhas Rochosas</span> no oeste, mais jovens, altas e imponentes, e os <span class='font-semibold text-emerald-600'>Montes Apalaches</span> no leste, mais antigos, erodidos e de altitudes menores. Essas montanhas influenciam o clima (criando 'sombras de chuva'), a distribuição de recursos hídricos e os padrões de assentamento humano. Outras cadeias importantes incluem a Sierra Nevada e as Montanhas Cascade no Oeste.",
-                        imageUrl: "images/Denali National Park, Alaska 🇺🇸.jpeg"
-                    },
-                    planicies: {
-                        titulo: "Grandes Planícies 🌾",
-                        texto: "Localizadas no coração do país, a leste das Montanhas Rochosas, as <span class='font-semibold text-emerald-600'>Grandes Planícies</span> são uma vasta extensão de terras relativamente planas ou suavemente onduladas. Historicamente cobertas por pradarias, hoje são uma das regiões agrícolas mais produtivas do mundo, essenciais para o cultivo de grãos como trigo e milho. Estendem-se do Canadá ao Texas.",
-                        imageUrl: "images/Montana Past, present and future _ Great Plains, Montana _ Facebook.jpeg"
-                    },
-                    "rios-lagos": {
-                        titulo: "Rios e Lagos 🌊",
-                        texto: "O sistema fluvial dos EUA é extenso. O <span class='font-semibold text-emerald-600'>Rio Mississippi</span>, junto com seus afluentes como o Missouri e o Ohio, forma uma das maiores bacias hidrográficas do mundo, crucial para o transporte e agricultura. No nordeste, os <span class='font-semibold text-emerald-600'>Grandes Lagos</span> (Superior, Michigan, Huron, Erie, Ontário) constituem a maior reserva de água doce superficial do planeta e são vitais para a navegação e indústria. Outros rios importantes incluem o Colorado no Sudoeste e o Columbia no Noroeste.",
-                        imageUrl: "images/The Mississippi River - Minnesota_.jpeg"
-                    },
-                    litoral: {
-                        titulo: "Litoral 🏖️",
-                        texto: "Os EUA possuem um litoral extenso e diversificado, banhado por três oceanos: Atlântico, Pacífico e Ártico, além do Golfo do México. A <span class='font-semibold text-emerald-600'>Costa Atlântica</span> varia de praias arenosas no sul a costas rochosas e recortadas no norte. A <span class='font-semibold text-emerald-600'>Costa do Pacífico</span> é conhecida por suas falésias, praias e a instabilidade geológica da Falha de San Andreas. O litoral do <span class='font-semibold text-emerald-600'>Golfo do México</span> é caracterizado por planícies costeiras baixas e deltas. Essas áreas costeiras são cruciais para o comércio, pesca, turismo e abrigam grandes centros populacionais.",
-                        imageUrl: "images/California.jpeg"
-                    }
-                },
-                riosChartLabels: ['Missouri', 'Mississippi', 'Colorado', 'Ohio', 'Hudson'],
-                riosChartDatasetLabel: 'Extensão (km)',
-                regioesChartYAxisTitle: 'Número Estimado de Ecossistemas',
-                regioesChartXAxisTitle: 'Regiões',
-                riosChartXAxisTitle: 'Extensão Estimada (km)',
-                riosChartYAxisTitle: 'Rios',
+                footerText: `&copy; ${new Date().getFullYear()} Aplicação Interativa de Geografia. Conteúdo adaptado para fins educacionais.`,
+                modalTitle: "Curiosidade!",
                 curiosidades: {
-                    visaoGeral: {
-                        title: "Curiosidade sobre os EUA!",
-                        content: "Os Estados Unidos são o terceiro maior país do mundo em área total (terra e água), superados apenas pela Rússia e Canadá. Sua vasta extensão contribui para a incrível diversidade geográfica."
+                    visaoGeral: "Os Estados Unidos são o terceiro maior país do mundo em área total, ficando atrás apenas da Rússia e do Canadá.",
+                    relevo: "O ponto mais alto dos EUA é o Denali (anteriormente Monte McKinley) no Alasca, com 6.190 metros, e o ponto mais baixo é o Vale da Morte na Califórnia, a 86 metros abaixo do nível do mar.",
+                    cultura: "O Jazz, um gênero musical genuinamente americano, nasceu em Nova Orleans, Louisiana, uma cidade portuária com uma rica mistura de culturas africanas, europeias e caribenhas."
+                },
+                regioesData: {
+                    nordeste: { nome: "Nordeste 🏙️", descricao: "Berço da nação, o Nordeste é conhecido por suas cidades históricas como Boston e Nova York, costas recortadas, os Montes Apalaches e invernos rigorosos. Sua economia é diversificada, com forte presença em finanças, educação e tecnologia. Culturalmente, possui grande influência europeia e uma rica história colonial.", clima: "Temperado continental, com verões quentes e invernos frios e nevados.", economia: "Finanças, educação, saúde, tecnologia, turismo.", ecossistemas: 4, imageUrl: "images/Times  Square.jpeg" },
+                    sul: { nome: "Sul ☀️", descricao: "Com clima mais quente e úmido, o Sul apresenta planícies costeiras, pântanos e o icônico Rio Mississippi. Tem uma história rica e complexa, marcada pela agricultura (algodão, tabaco), e uma cultura vibrante que inclui o blues, jazz e uma culinária distinta. Recentemente, tem visto crescimento industrial e turístico.", clima: "Subtropical úmido, com verões quentes e úmidos e invernos amenos.", economia: "Agricultura, indústria (manufatura, automotiva), turismo, energia.", ecossistemas: 5, imageUrl: "https://placehold.co/300x200/f97316/FFFFFF?text=Sul+EUA" },
+                    "centro-oeste": { nome: "Centro-Oeste 🌾", descricao: "Conhecido como o 'celeiro dos EUA', o Centro-Oeste é dominado por vastas pradarias e campos de cultivo, especialmente milho e soja. É atravessado por grandes rios como o Mississippi e o Missouri. As cidades principais incluem Chicago e Detroit. O clima é continental, com extremos de temperatura.", clima: "Continental, com verões quentes e invernos frios.", economia: "Agricultura (milho, soja), manufatura, transporte.", ecossistemas: 3, imageUrl: "https://placehold.co/300x200/ca8a04/FFFFFF?text=Centro-Oeste+EUA" },
+                    sudoeste: { nome: "Sudoeste 🏜️", descricao: "Caracterizado por paisagens desérticas e semidesérticas, como o Grand Canyon e o Deserto de Mojave. Possui uma forte influência cultural hispânica e nativo-americana. Grandes cidades como Phoenix e Las Vegas se desenvolveram em meio à aridez. A água é um recurso precioso e disputado.", clima: "Árido e semiárido, com verões muito quentes e invernos amenos.", economia: "Turismo, mineração, agricultura irrigada, tecnologia.", ecossistemas: 2, imageUrl: "https://placehold.co/300x200/d97706/FFFFFF?text=Sudoeste+EUA" },
+                    oeste: { nome: "Oeste/Costa Oeste 🏞️", descricao: "Abrange uma diversidade impressionante, desde as praias da Califórnia e as florestas temperadas do Noroeste Pacífico até as Montanhas Rochosas e a Grande Bacia. Inclui estados como Califórnia, Oregon, Washington e Colorado. É um polo de inovação tecnológica (Vale do Silício) e indústria do entretenimento.", clima: "Variado: Mediterrâneo (CA), Marítimo (OR, WA), Montanhoso, Desértico.", economia: "Tecnologia, entretenimento, agricultura, turismo, recursos naturais.", ecossistemas: 6, imageUrl: "https://placehold.co/300x200/059669/FFFFFF?text=Oeste+EUA" }
+                },
+                featureData: {
+                    montanhas: { nome: "Montanhas Rochosas e Apalaches ⛰️", descricao: "Os EUA são cortados por duas grandes cadeias montanhosas: as Montanhas Rochosas no Oeste, mais jovens e imponentes, e os Montes Apalaches no Leste, mais antigos e erodidos. Essas montanhas influenciam o clima, os recursos hídricos e os padrões de assentamento.", imagem: "https://placehold.co/300x200/64748b/FFFFFF?text=Montanhas+EUA" },
+                    planicies: { nome: "Grandes Planícies Centrais 🌾", descricao: "Estendendo-se pelo coração do país, as Grandes Planícies são vastas áreas de terreno relativamente plano, historicamente cobertas por pradarias. São fundamentais para a agricultura americana, especialmente o cultivo de grãos e a pecuária.", imagem: "https://placehold.co/300x200/a16207/FFFFFF?text=Plan%C3%ADcies+EUA" },
+                    "rios-lagos": { nome: "Rios Mississippi-Missouri e Grandes Lagos 🌊", descricao: "O sistema fluvial Mississippi-Missouri é um dos maiores do mundo, drenando grande parte do interior do país. Os Grandes Lagos, na fronteira com o Canadá, formam o maior grupo de lagos de água doce da Terra. Ambos são vitais para transporte, abastecimento de água e ecossistemas.", imagem: "https://placehold.co/300x200/0ea5e9/FFFFFF?text=Rios+e+Lagos" },
+                    litoral: { nome: "Extensas Costas Atlântica, Pacífica e do Golfo 🏖️", descricao: "Os EUA possuem um litoral vasto e diversificado, incluindo as praias arenosas da Costa Atlântica, as falésias e enseadas da Costa Pacífica, e os deltas e pântanos da Costa do Golfo. Essas áreas costeiras são densamente povoadas e economicamente importantes.", imagem: "https://placehold.co/300x200/06b6d4/FFFFFF?text=Litoral+EUA" }
+                },
+                riosChartData: {
+                    labels: ["Missouri", "Mississippi", "Yukon", "Rio Grande", "Colorado"],
+                    data: [3767, 3544, 3190, 3051, 2330], // Comprimentos em km (aproximados)
+                    label: "Extensão (km)"
+                },
+                // Quiz Content
+                quizSectionTitle: "Quiz Interativo de Geografia",
+                quizIntroText: "Teste seus conhecimentos sobre a geografia dos Estados Unidos!",
+                quizQuestionCounterText: (current, total) => `Pergunta ${current} de ${total}`,
+                quizActionButtonConfirm: "Confirmar Resposta",
+                quizActionButtonNext: "Próxima Pergunta",
+                quizActionButtonShowScore: "Ver Pontuação Final",
+                quizScoreTitleText: "Sua Pontuação Final:",
+                quizScoreMessageExcellent: (score, total) => `Excelente! Você acertou ${score} de ${total} perguntas.`,
+                quizScoreMessageGood: (score, total) => `Muito bom! Você acertou ${score} de ${total} perguntas.`,
+                quizScoreMessageImprove: (score, total) => `Você acertou ${score} de ${total}. Continue explorando para aprender mais!`,
+                quizRestartButtonText: "Reiniciar Quiz",
+                quizQuestions: [
+                    {
+                        question: "Qual é a maior cadeia de montanhas em extensão no Oeste dos EUA?",
+                        options: ["Apalaches", "Montanhas Rochosas", "Sierra Nevada", "Cordilheira das Cascatas"],
+                        answer: "Montanhas Rochosas",
+                        feedbackCorrect: "Correto! As Montanhas Rochosas são uma vasta cadeia montanhosa no oeste da América do Norte.",
+                        feedbackIncorrect: "Incorreto. A resposta correta é Montanhas Rochosas."
                     },
-                    relevo: {
-                        title: "Curiosidade sobre o Relevo!",
-                        content: "O Monte Denali (anteriormente McKinley), no Alasca, é o pico mais alto da América do Norte, com 6.190 metros de altitude. Ele faz parte da Cordilheira do Alasca."
+                    {
+                        question: "Qual rio forma uma parte significativa da fronteira sul dos EUA com o México?",
+                        options: ["Mississippi", "Missouri", "Colorado", "Rio Grande"],
+                        answer: "Rio Grande",
+                        feedbackCorrect: "Correto! O Rio Grande (ou Río Bravo no México) define uma grande parte da fronteira.",
+                        feedbackIncorrect: "Incorreto. A resposta correta é Rio Grande."
                     },
-                    cultura: {
-                        title: "Curiosidade Cultural!",
-                        content: "A culinária regional nos EUA é fortemente influenciada pela geografia. Por exemplo, a culinária do Sul é conhecida por pratos como 'gumbo' e 'jambalaya', que se beneficiam dos frutos do mar e produtos agrícolas locais, enquanto o Centro-Oeste é famoso por seus pratos à base de carne e grãos."
+                    {
+                        question: "A região do 'Sudoeste' dos EUA é caracterizada principalmente por qual tipo de clima?",
+                        options: ["Tropical", "Árido/Semiárido", "Temperado Marítimo", "Continental Úmido"],
+                        answer: "Árido/Semiárido",
+                        feedbackCorrect: "Correto! O Sudoeste é conhecido por seus desertos e clima seco.",
+                        feedbackIncorrect: "Incorreto. A resposta correta é Árido/Semiárido."
+                    },
+                    {
+                        question: "Qual destas regiões é conhecida como o 'celeiro dos EUA' devido à sua vasta produção agrícola?",
+                        options: ["Nordeste", "Sul", "Centro-Oeste", "Oeste"],
+                        answer: "Centro-Oeste",
+                        feedbackCorrect: "Correto! O Centro-Oeste, com suas Grandes Planícies, é o coração agrícola do país.",
+                        feedbackIncorrect: "Incorreto. A resposta correta é Centro-Oeste."
                     }
-                }
+                ]
             },
             en: {
                 appTitle: "Interactive US Geography",
-                headerTitle: "Exploring the Geography of the USA 🇺🇸",
+                headerTitle: "Exploring US Geography 🇺🇸",
                 headerSubtitle: "An interactive journey through the landscapes and features that define a nation.",
                 navVisaoGeral: "Overview",
                 navRegioes: "Major Regions",
                 navRelevoHidrografia: "Relief and Hydrography",
                 navGeografiaCultura: "Geography and Culture",
-                visaoGeralTitle: "Welcome to the US Geography Exploration!",
-                visaoGeralPara1: "This interactive application was created to introduce you to the diversity and complexity of the geography of the United States. A country's geography is fundamental to understanding its history, culture, economy, and the challenges it faces. The USA, with its vast territory, is home to an incredible variety of landscapes, climates, and ecosystems.",
-                visaoGeralPara2: "Navigate through the tabs to discover the striking characteristics of the <span class='font-semibold text-emerald-600'>Major Regions</span>, explore the imposing <span class='font-semibold text-emerald-600'>Relief and Hydrography Formations</span>, and understand how <span class='font-semibold text-emerald-600'>Geography influences Culture</span> and the American way of life.",
-                visaoGeralPara3: "Use the interactive elements, such as charts and selectors, to deepen your knowledge. We hope this journey is informative and stimulating!",
-                startExploringBtn: "Start Exploring Regions 🗺️",
+                navQuiz: "Interactive Quiz",
+                visaoGeralTitle: "Welcome to the US Geographic Exploration!",
+                visaoGeralPara1: "This interactive application was created to introduce you to the diversity and complexity of the geography of the United States. A country's geography is fundamental to understanding its history, culture, economy, and the challenges it faces. The USA, with its vast territorial expanse, is home to an incredible variety of landscapes, climates, and ecosystems.",
+                visaoGeralPara2: "Navigate through the tabs to discover the striking features of the <span class='font-semibold text-emerald-600'>Major Regions</span>, explore the imposing <span class='font-semibold text-emerald-600'>Landforms and Hydrography</span>, and understand how <span class='font-semibold text-emerald-600'>Geography influences Culture</span> and the American way of life.",
+                visaoGeralPara3: "Use interactive elements, such as charts and selectors, to deepen your knowledge. We hope this journey is informative and stimulating!",
+                textStartExploringBtn: "Start Exploring Regions 🗺️",
                 curiosidadeVisaoGeralText: "Did You Know?",
-                regioesTitle: "The Major Geographical Regions of the USA",
-                regioesIntro: "The United States is a continental country, and its geography is often divided into large regions, each with distinct cultural, economic, and landscape identities. Explore below to learn about the peculiarities of each. By selecting a region, you will see its characteristics and an illustrative comparative chart on ecosystem diversity.",
+                regioesTitle: "The Major Geographic Regions of the USA",
+                regioesIntro: "The United States is a country of continental dimensions, and its geography is often divided into large regions, each with distinct cultural, economic, and landscape identities. Explore below to learn about the particularities of each. When you select a region, you will see its characteristics and an illustrative comparative chart on ecosystem diversity.",
                 mapaConceitualTitle: "Click on a region on the map to explore:",
-                mapNordeste: "Northeast",
-                mapSul: "South",
-                mapCentroOeste: "Midwest",
-                mapSudoeste: "Southwest",
-                mapOeste: "West",
-                btnNordeste: "Northeast",
-                btnSul: "South",
-                btnCentroOeste: "Midwest",
-                btnSudoeste: "Southwest",
-                btnOeste: "West/West Coast",
+                mapNordeste: "Northeast", mapSul: "South", mapCentroOeste: "Midwest", mapSudoeste: "Southwest", mapOeste: "West",
+                btnNordeste: "Northeast", btnSul: "South", btnCentroOeste: "Midwest", btnSudoeste: "Southwest", btnOeste: "West/West Coast",
                 regioesChartTitle: "Regional Comparison: Number of Major Ecosystems (Estimated)",
-                regioesChartSubtitle: "This chart illustrates an estimate of the diversity of major ecosystems per region. Click on the regions above to update.",
+                regioesChartSubtitle: "This chart illustrates an estimate of the diversity of major ecosystems by region. Click on the regions above to update.",
                 relevoHidrografiaTitle: "Relief and Hydrography of the USA",
-                relevoHidrografiaIntro: "Landforms (relief) and water distribution (hydrography) are crucial elements that define landscapes and influence climate and human occupation. The USA presents a wide variety, from imposing mountain ranges to vast plains and extensive river systems. Explore the buttons below to learn about each component.",
-                btnMontanhas: "Mountains",
-                btnPlanicies: "Great Plains",
-                btnRiosLagos: "Rivers and Lakes",
-                btnLitoral: "Coastline",
-                riosChartTitle: "Comparison: Selected River Lengths (Estimated in km)",
-                riosChartSubtitle: "This chart shows the approximate length of some of the main rivers in the USA.",
+                relevoHidrografiaIntro: "Landforms (relief) and water distribution (hydrography) are crucial elements that define landscapes and influence climate and human occupation. The USA has a wide variety, from imposing mountain ranges to vast plains and extensive river systems. Explore the buttons below to learn about each component.",
+                btnMontanhas: "Mountains", btnPlanicies: "Great Plains", btnRiosLagos: "Rivers and Lakes", btnLitoral: "Coastline",
+                riosChartTitle: "Comparison: Length of Selected Rivers (Estimate in km)",
+                riosChartSubtitle: "This chart shows the approximate length of some of the major rivers in the USA.",
                 curiosidadeRelevoText: "Did You Know?",
                 geografiaCulturaTitle: "The Impact of Geography on American Culture",
                 geografiaCulturaIntro: "The geography of a place is not just a backdrop; it is an active force that profoundly shapes how people live, work, relate, and develop their cultures. In the United States, geographical diversity has resulted in a rich tapestry of lifestyles, regional economies, and even specific challenges. Click on the topics below to expand and see how different geographical aspects influence life in the USA.",
                 accClimaTitle: "Climate and Lifestyle",
-                accClimaContent: "From the hot, humid, subtropical climate of the South, which influences architecture with wide verandas and a slower pace of life, to the harsh, snowy winters of the Northeast and parts of the Midwest, which require preparation and shape leisure activities like skiing and hockey. On the West Coast, milder climates like the Mediterranean in California favor year-round outdoor activities. These climatic variations affect everything from the type of agriculture possible to the clothes people wear and the homes they build.",
+                accClimaContent: "From the hot, humid subtropical South, influencing architecture with wide verandas and a slower pace of life, to the harsh, snowy winters of the Northeast and parts of the Midwest, requiring preparation and shaping leisure activities like skiing and hockey. On the West Coast, milder climates like the Mediterranean in California favor year-round outdoor activities. These climatic variations affect everything from the type of agriculture possible to the clothes people wear and the homes they build.",
                 accEconomiaTitle: "Local Economy",
-                accEconomiaContent: "Geography is a determining factor for economic activities. The vast and fertile Great Plains in the Midwest make the region the country's 'breadbasket,' with extensive grain agriculture. Coastal regions, such as the Northeast and the West Coast, have historically developed based on maritime trade, fishing, and, more recently, tourism. The presence of mineral resources, such as coal in the Appalachians or oil in Texas and Alaska, drives extractive industries. The arid Southwest favors solar energy, while the mountains and forests of the West attract tourism and logging.",
+                accEconomiaContent: "Geography is a determining factor for economic activities. The vast, fertile Great Plains in the Midwest make the region the country's 'breadbasket,' with extensive grain farming. Coastal regions, like the Northeast and West Coast, historically developed based on maritime trade, fishing, and, more recently, tourism. The presence of mineral resources, such as coal in the Appalachians or oil in Texas and Alaska, drives extractive industries. The arid Southwest favors solar energy, while the mountains and forests of the West attract tourism and logging.",
                 accDesenvolvimentoTitle: "Urban Development",
-                accDesenvolvimentoContent: "The location of many American cities was strategically defined by geography. Natural harbors in the Northeast (New York, Boston) and on the West Coast (San Francisco, Seattle) allowed for the flourishing of large urban centers. Navigable rivers like the Mississippi and Ohio facilitated transportation and trade, leading to the growth of cities along their banks (St. Louis, Cincinnati). In contrast, westward expansion, with vast stretches of land, favored a more dispersed, automobile-dependent development model in many cities.",
+                accDesenvolvimentoContent: "The location of many American cities was strategically defined by geography. Natural harbors in the Northeast (New York, Boston) and on the West Coast (San Francisco, Seattle) allowed for the flourishing of large urban centers. Navigable rivers like the Mississippi and Ohio facilitated transportation and trade, leading to the growth of cities on their banks (St. Louis, Cincinnati). In contrast, westward expansion, with vast expanses of land, favored a more dispersed, car-dependent development model in many cities.",
                 accDesafiosTitle: "Natural Challenges",
-                accDesafiosContent: "Geographical diversity also brings with it a variety of natural challenges. The Gulf Coast and East Coast are vulnerable to hurricanes. The Midwest is known as 'Tornado Alley' due to the frequency of tornadoes. California and other parts of the West Coast are in seismically active zones, subject to earthquakes. Wildfires are a growing threat in arid and forested areas of the West, especially during periods of drought. These challenges require planning, resilient infrastructure, and early warning systems, shaping how communities prepare for and respond to disasters.",
+                accDesafiosContent: "Geographical diversity also brings a variety of natural challenges. The Gulf Coast and East Coast are vulnerable to hurricanes. The Midwest is known as 'Tornado Alley' due to the frequency of tornadoes. California and other parts of the West Coast are in seismically active zones, subject to earthquakes. Wildfires are a growing threat in arid and forested areas of the West, especially during droughts. These challenges require planning, resilient infrastructure, and early warning systems, shaping how communities prepare for and respond to disasters.",
                 curiosidadeCulturaText: "Did You Know?",
-                footerText: "&copy; <span id='currentYear'></span> Interactive Geography Application. Content adapted for educational purposes.",
-                regioesData: {
-                    nordeste: {
-                        nome: "Northeast 🏙️",
-                        descricao: "The birthplace of the nation, the Northeast is known for its historic cities like Boston and New York, rugged coastlines, the Appalachian Mountains, and harsh winters. Its economy is diversified, with a strong presence in finance, education, and technology. Culturally, it has a strong European influence and a rich colonial history.",
-                        clima: "Continental temperate, with hot summers and cold, snowy winters.",
-                        economia: "Finance, education, healthcare, technology, tourism.",
-                        ecossistemas: 4,
-                        imageUrl: "images/Times Square.jpeg"
-                    },
-                    sul: {
-                        nome: "South ☀️",
-                        descricao: "With a warmer and humid climate, the South features coastal plains, swamps, and the iconic Mississippi River. It has a rich and complex history, marked by agriculture (cotton, tobacco), and a vibrant culture that includes blues, jazz, and distinct cuisine. Recently, it has seen industrial and tourism growth.",
-                        clima: "Humid subtropical, with hot, humid summers and mild winters.",
-                        economia: "Agriculture, industry (manufacturing, automotive), tourism, energy.",
-                        ecossistemas: 5,
-                        imageUrl: "images/Jonesborough, Tennessee.jpeg"
-                    },
-                    "centro-oeste": {
-                        nome: "Midwest 🌾",
-                        descricao: "Known as the 'breadbasket of the USA,' the Midwest is dominated by vast prairies and cultivated fields. Cities like Chicago and Detroit are important industrial and transportation hubs. Agriculture is an economic pillar, along with manufacturing, especially the automotive industry.",
-                        clima: "Continental, with large temperature variations between hot summers and cold winters.",
-                        economia: "Agriculture (corn, soybeans, wheat), industry (automotive, machinery), food processing.",
-                        ecossistemas: 3,
-                        imageUrl: "images/American Chicago.jpeg"
-                    },
-                    sudoeste: {
-                        nome: "Southwest 🏜️",
-                        descricao: "Characterized by arid and semi-arid landscapes, the Southwest is home to deserts, spectacular canyons like the Grand Canyon, and parts of the Rocky Mountains. The culture is a rich blend of Native American, Hispanic, and Anglo-American influences. Tourism, energy (solar, oil), and technology are important sectors.",
-                        clima: "Arid and semi-arid, with very hot summers and mild to cold winters, depending on altitude.",
-                        economia: "Tourism, energy (oil, gas, solar), irrigated agriculture, technology.",
-                        ecossistemas: 6,
-                        imageUrl: "images/GRAND CANYON ULUSAL PARKI  SOUTH RIM  AZ.jpeg"
-                    },
-                    oeste: {
-                        nome: "West/West Coast 🏞️",
-                        descricao: "A region of contrasts, with sunny beaches, imposing mountains (Rockies, Sierra Nevada), dense forests, and volcanic activity. Cities like Los Angeles and San Francisco are global centers of innovation (Silicon Valley), entertainment, and international trade. It has a great diversity of national parks.",
-                        clima: "Varied: Mediterranean in California, temperate maritime in the northwest, alpine in the mountains, desert in the interior.",
-                        economia: "Technology, entertainment, tourism, agriculture (especially in California), international trade.",
-                        ecossistemas: 7,
-                        imageUrl: "images/download (21).jpeg"
-                    }
-                },
-                relevoHidrografiaData: {
-                    montanhas: {
-                        titulo: "Mountain Ranges ⛰️",
-                        texto: "The USA has two major mountain ranges: the <span class='font-semibold text-emerald-600'>Rocky Mountains</span> in the west, which are younger, taller, and more imposing, and the <span class='font-semibold text-emerald-600'>Appalachian Mountains</span> in the east, which are older, more eroded, and lower in altitude. These mountains influence climate (creating 'rain shadows'), water resource distribution, and human settlement patterns. Other important ranges include the Sierra Nevada and the Cascade Mountains in the West.",
-                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Mountains"
-                    },
-                    planicies: {
-                        titulo: "Great Plains 🌾",
-                        texto: "Located in the heart of the country, east of the Rocky Mountains, the <span class='font-semibold text-emerald-600'>Great Plains</span> are a vast expanse of relatively flat or gently rolling land. Historically covered by prairies, today they are one of the most productive agricultural regions in the world, essential for growing grains like wheat and corn. They extend from Canada to Texas.",
-                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Plains"
-                    },
-                    "rios-lagos": {
-                        titulo: "Rivers and Lakes 🌊",
-                        texto: "The US river system is extensive. The <span class='font-semibold text-emerald-600'>Mississippi River</span>, along with its tributaries like the Missouri and Ohio, forms one of the largest river basins in the world, crucial for transportation and agriculture. In the northeast, the <span class='font-semibold text-emerald-600'>Great Lakes</span> (Superior, Michigan, Huron, Erie, Ontario) constitute the largest fresh surface water reserve on the planet and are vital for navigation and industry. Other important rivers include the Colorado in the Southwest and the Columbia in the Northwest.",
-                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Rivers+and+Lakes"
-                    },
-                    litoral: {
-                        titulo: "Coastline 🏖️",
-                        texto: "The USA has an extensive and diverse coastline, bathed by three oceans: Atlantic, Pacific, and Arctic, in addition to the Gulf of Mexico. The <span class='font-semibold text-emerald-600'>Atlantic Coast</span> varies from sandy beaches in the south to rocky and rugged coastlines in the north. The <span class='font-semibold text-emerald-600'>Pacific Coast</span> is known for its cliffs, beaches, and the geological instability of the San Andreas Fault. The <span class='font-semibold text-emerald-600'>Gulf of Mexico</span> coastline is characterized by low coastal plains and deltas. These coastal areas are crucial for trade, fishing, tourism, and host large population centers.",
-                        imageUrl: "https://placehold.co/300x200/a8a29e/ffffff?text=Coastline"
-                    }
-                },
-                riosChartLabels: ['Missouri', 'Mississippi', 'Colorado', 'Ohio', 'Hudson'],
-                riosChartDatasetLabel: 'Length (km)',
-                regioesChartYAxisTitle: 'Estimated Number of Ecosystems',
-                regioesChartXAxisTitle: 'Regions',
-                riosChartXAxisTitle: 'Estimated Length (km)',
-                riosChartYAxisTitle: 'Rivers',
+                footerText: `&copy; ${new Date().getFullYear()} Interactive Geography Application. Content adapted for educational purposes.`,
+                modalTitle: "Did You Know?",
                 curiosidades: {
-                    visaoGeral: {
-                        title: "Curiosity about the USA!",
-                        content: "The United States is the third largest country in the world by total area (land and water), surpassed only by Russia and Canada. Its vast expanse contributes to its incredible geographical diversity."
+                    visaoGeral: "The United States is the third-largest country in the world by total area, ranking behind only Russia and Canada.",
+                    relevo: "The highest point in the USA is Denali (formerly Mount McKinley) in Alaska, at 6,190 meters (20,310 feet), and the lowest point is Death Valley in California, at 86 meters (282 feet) below sea level.",
+                    cultura: "Jazz, a genuinely American musical genre, was born in New Orleans, Louisiana, a port city with a rich mix of African, European, and Caribbean cultures."
+                },
+                regioesData: {
+                    nordeste: { nome: "Northeast 🏙️", descricao: "Birthplace of the nation, the Northeast is known for its historic cities like Boston and New York, rugged coastlines, the Appalachian Mountains, and harsh winters. Its economy is diversified, with a strong presence in finance, education, and technology. Culturally, it has significant European influence and a rich colonial history.", clima: "Temperate continental, with hot summers and cold, snowy winters.", economia: "Finance, education, healthcare, technology, tourism.", ecossistemas: 4, imageUrl: "https://placehold.co/300x200/0284c7/FFFFFF?text=Northeast+USA" },
+                    sul: { nome: "South ☀️", descricao: "With a warmer, more humid climate, the South features coastal plains, swamps, and the iconic Mississippi River. It has a rich and complex history, marked by agriculture (cotton, tobacco), and a vibrant culture that includes blues, jazz, and distinct cuisine. Recently, it has seen industrial and tourism growth.", clima: "Humid subtropical, with hot, humid summers and mild winters.", economia: "Agriculture, industry (manufacturing, automotive), tourism, energy.", ecossistemas: 5, imageUrl: "https://placehold.co/300x200/f97316/FFFFFF?text=South+USA" },
+                    "centro-oeste": { nome: "Midwest 🌾", descricao: "Known as the 'breadbasket of the USA,' the Midwest is dominated by vast prairies and farmlands, especially corn and soybeans. It is crossed by major rivers like the Mississippi and Missouri. Major cities include Chicago and Detroit. The climate is continental, with temperature extremes.", clima: "Continental, with hot summers and cold winters.", economia: "Agriculture (corn, soybeans), manufacturing, transportation.", ecossistemas: 3, imageUrl: "https://placehold.co/300x200/ca8a04/FFFFFF?text=Midwest+USA" },
+                    sudoeste: { nome: "Southwest 🏜️", descricao: "Characterized by desert and semi-desert landscapes, such as the Grand Canyon and Mojave Desert. It has a strong Hispanic and Native American cultural influence. Large cities like Phoenix and Las Vegas have developed amidst aridity. Water is a precious and contested resource.", clima: "Arid and semi-arid, with very hot summers and mild winters.", economia: "Tourism, mining, irrigated agriculture, technology.", ecossistemas: 2, imageUrl: "https://placehold.co/300x200/d97706/FFFFFF?text=Southwest+USA" },
+                    oeste: { nome: "West/West Coast 🏞️", descricao: "Encompasses an impressive diversity, from California's beaches and the Pacific Northwest's temperate rainforests to the Rocky Mountains and the Great Basin. Includes states like California, Oregon, Washington, and Colorado. It is a hub for technological innovation (Silicon Valley) and the entertainment industry.", clima: "Varied: Mediterranean (CA), Oceanic (OR, WA), Mountain, Desert.", economia: "Technology, entertainment, agriculture, tourism, natural resources.", ecossistemas: 6, imageUrl: "https://placehold.co/300x200/059669/FFFFFF?text=West+USA" }
+                },
+                featureData: {
+                    montanhas: { nome: "Rocky and Appalachian Mountains ⛰️", descricao: "The USA is crossed by two major mountain ranges: the Rocky Mountains in the West, younger and more imposing, and the Appalachian Mountains in the East, older and more eroded. These mountains influence climate, water resources, and settlement patterns.", imagem: "https://placehold.co/300x200/64748b/FFFFFF?text=US+Mountains" },
+                    planicies: { nome: "Great Central Plains 🌾", descricao: "Stretching through the heart of the country, the Great Plains are vast areas of relatively flat terrain, historically covered by prairies. They are fundamental to American agriculture, especially grain cultivation and cattle ranching.", imagem: "https://placehold.co/300x200/a16207/FFFFFF?text=US+Plains" },
+                    "rios-lagos": { nome: "Mississippi-Missouri Rivers and Great Lakes 🌊", descricao: "The Mississippi-Missouri river system is one of the largest in the world, draining much of the country's interior. The Great Lakes, on the border with Canada, form the largest group of freshwater lakes on Earth. Both are vital for transportation, water supply, and ecosystems.", imagem: "https://placehold.co/300x200/0ea5e9/FFFFFF?text=Rivers+and+Lakes" },
+                    litoral: { nome: "Extensive Atlantic, Pacific, and Gulf Coasts 🏖️", descricao: "The USA has a vast and diverse coastline, including the sandy beaches of the Atlantic Coast, the cliffs and coves of the Pacific Coast, and the deltas and swamps of the Gulf Coast. These coastal areas are densely populated and economically important.", imagem: "https://placehold.co/300x200/06b6d4/FFFFFF?text=US+Coastline" }
+                },
+                riosChartData: {
+                    labels: ["Missouri", "Mississippi", "Yukon", "Rio Grande", "Colorado"],
+                    data: [3767, 3544, 3190, 3051, 2330], // Lengths in km (approximate)
+                    label: "Length (km)"
+                },
+                // Quiz Content
+                quizSectionTitle: "Interactive Geography Quiz",
+                quizIntroText: "Test your knowledge about the geography of the United States!",
+                quizQuestionCounterText: (current, total) => `Question ${current} of ${total}`,
+                quizActionButtonConfirm: "Confirm Answer",
+                quizActionButtonNext: "Next Question",
+                quizActionButtonShowScore: "Show Final Score",
+                quizScoreTitleText: "Your Final Score:",
+                quizScoreMessageExcellent: (score, total) => `Excellent! You answered ${score} out of ${total} questions correctly.`,
+                quizScoreMessageGood: (score, total) => `Very good! You answered ${score} out of ${total} questions correctly.`,
+                quizScoreMessageImprove: (score, total) => `You answered ${score} out of ${total} correctly. Keep exploring to learn more!`,
+                quizRestartButtonText: "Restart Quiz",
+                quizQuestions: [
+                    {
+                        question: "What is the largest mountain range by area in the Western USA?",
+                        options: ["Appalachians", "Rocky Mountains", "Sierra Nevada", "Cascade Range"],
+                        answer: "Rocky Mountains",
+                        feedbackCorrect: "Correct! The Rocky Mountains are a vast mountain range in western North America.",
+                        feedbackIncorrect: "Incorrect. The correct answer is Rocky Mountains."
                     },
-                    relevo: {
-                        title: "Curiosity about Relief!",
-                        content: "Mount Denali (formerly McKinley), in Alaska, is the highest peak in North America, with an altitude of 6,190 meters. It is part of the Alaska Range."
+                    {
+                        question: "Which river forms a significant part of the southern U.S. border with Mexico?",
+                        options: ["Mississippi", "Missouri", "Colorado", "Rio Grande"],
+                        answer: "Rio Grande",
+                        feedbackCorrect: "Correct! The Rio Grande (or Río Bravo in Mexico) defines a large part of the border.",
+                        feedbackIncorrect: "Incorrect. The correct answer is Rio Grande."
                     },
-                    cultura: {
-                        title: "Cultural Curiosity!",
-                        content: "Regional cuisine in the USA is strongly influenced by geography. For example, Southern cuisine is known for dishes like 'gumbo' and 'jambalaya,' which benefit from local seafood and agricultural products, while the Midwest is famous for its meat and grain-based dishes."
+                    {
+                        question: "The 'Southwest' region of the USA is primarily characterized by what type of climate?",
+                        options: ["Tropical", "Arid/Semi-arid", "Temperate Oceanic", "Humid Continental"],
+                        answer: "Arid/Semi-arid",
+                        feedbackCorrect: "Correct! The Southwest is known for its deserts and dry climate.",
+                        feedbackIncorrect: "Incorrect. The correct answer is Arid/Semi-arid."
+                    },
+                    {
+                        question: "Which of these regions is known as the 'breadbasket of the USA' due to its vast agricultural production?",
+                        options: ["Northeast", "South", "Midwest", "West"],
+                        answer: "Midwest",
+                        feedbackCorrect: "Correct! The Midwest, with its Great Plains, is the agricultural heartland of the country.",
+                        feedbackIncorrect: "Incorrect. The correct answer is Midwest."
                     }
-                }
+                ]
             }
         };
-        
-        let regioesChartInstance = null;
-        let riosChartInstance = null;
 
-        function updateTextContent() {
-            const lang = currentLanguage;
-            const data = contentData[lang];
+        // --- Quiz Logic ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let selectedOptionValue = null;
+        let questions = [];
 
-            document.getElementById('appTitle').textContent = data.appTitle;
-            document.getElementById('headerTitle').textContent = data.headerTitle;
-            document.getElementById('headerSubtitle').textContent = data.headerSubtitle;
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            selectedOptionValue = null;
+            questions = contentData[currentLanguage].quizQuestions;
 
-            document.getElementById('navVisaoGeral').textContent = data.navVisaoGeral;
-            document.getElementById('navRegioes').textContent = data.navRegioes;
-            document.getElementById('navRelevoHidrografia').textContent = data.navRelevoHidrografia;
-            document.getElementById('navGeografiaCultura').textContent = data.navGeografiaCultura;
+            questionContainer.style.display = 'block';
+            optionsContainer.style.display = 'grid'; // Or 'flex' etc.
+            feedbackContainer.style.display = 'block';
+            quizActionButton.style.display = 'inline-block';
+            
+            scoreContainer.classList.add('hidden');
+            quizArea.classList.remove('hidden'); // Make sure main quiz area is visible
 
-            document.getElementById('visaoGeralTitle').textContent = data.visaoGeralTitle;
-            document.getElementById('visaoGeralPara1').innerHTML = data.visaoGeralPara1;
-            document.getElementById('visaoGeralPara2').innerHTML = data.visaoGeralPara2;
-            document.getElementById('visaoGeralPara3').innerHTML = data.visaoGeralPara3;
-            document.getElementById('startExploringBtn').textContent = data.startExploringBtn;
-            document.getElementById('curiosidadeVisaoGeralText').textContent = data.curiosidadeVisaoGeralText;
+            feedbackTextEl.textContent = '';
+            feedbackTextEl.className = 'text-lg font-medium'; // Reset class
 
-            document.getElementById('regioesTitle').textContent = data.regioesTitle;
-            document.getElementById('regioesIntro').innerHTML = data.regioesIntro;
-            document.getElementById('mapaConceitualTitle').textContent = data.mapaConceitualTitle;
-            document.getElementById('mapNordeste').textContent = data.mapNordeste;
-            document.getElementById('mapSul').textContent = data.mapSul;
-            document.getElementById('mapCentroOeste').textContent = data.mapCentroOeste;
-            document.getElementById('mapSudoeste').textContent = data.mapSudoeste;
-            document.getElementById('mapOeste').textContent = data.mapOeste;
-            document.getElementById('btnNordeste').textContent = data.btnNordeste;
-            document.getElementById('btnSul').textContent = data.btnSul;
-            document.getElementById('btnCentroOeste').textContent = data.btnCentroOeste;
-            document.getElementById('btnSudoeste').textContent = data.btnSudoeste;
-            document.getElementById('btnOeste').textContent = data.btnOeste;
-            document.getElementById('regioesChartTitle').textContent = data.regioesChartTitle;
-            document.getElementById('regioesChartSubtitle').textContent = data.regioesChartSubtitle;
-
-            document.getElementById('relevoHidrografiaTitle').textContent = data.relevoHidrografiaTitle;
-            document.getElementById('relevoHidrografiaIntro').innerHTML = data.relevoHidrografiaIntro;
-            document.getElementById('btnMontanhas').textContent = data.btnMontanhas;
-            document.getElementById('btnPlanicies').textContent = data.btnPlanicies;
-            document.getElementById('btnRiosLagos').textContent = data.btnRiosLagos;
-            document.getElementById('btnLitoral').textContent = data.btnLitoral;
-            document.getElementById('riosChartTitle').textContent = data.riosChartTitle;
-            document.getElementById('riosChartSubtitle').textContent = data.riosChartSubtitle;
-            document.getElementById('curiosidadeRelevoText').textContent = data.curiosidadeRelevoText;
-
-            document.getElementById('geografiaCulturaTitle').textContent = data.geografiaCulturaTitle;
-            document.getElementById('geografiaCulturaIntro').innerHTML = data.geografiaCulturaIntro;
-            document.getElementById('accClimaTitle').textContent = data.accClimaTitle;
-            document.getElementById('accClimaContent').innerHTML = data.accClimaContent;
-            document.getElementById('accEconomiaTitle').textContent = data.accEconomiaTitle;
-            document.getElementById('accEconomiaContent').innerHTML = data.accEconomiaContent;
-            document.getElementById('accDesenvolvimentoTitle').textContent = data.accDesenvolvimentoTitle;
-            document.getElementById('accDesenvolvimentoContent').innerHTML = data.accDesenvolvimentoContent;
-            document.getElementById('accDesafiosTitle').textContent = data.accDesafiosTitle;
-            document.getElementById('accDesafiosContent').innerHTML = data.accDesafiosContent;
-            document.getElementById('curiosidadeCulturaText').textContent = data.curiosidadeCulturaText;
-
-            document.getElementById('footerText').innerHTML = data.footerText.replace("<span id='currentYear'></span>", `<span id='currentYear'>${new Date().getFullYear()}</span>`);
-
-            // Update current active region/feature info to reflect language change
-            const activeRegionButton = document.querySelector('.region-button.active');
-            if (activeRegionButton) {
-                updateRegionInfo(activeRegionButton.dataset.region);
-            } else {
-                updateRegionInfo('nordeste'); // Default if no region is active
-            }
-
-            const activeFeatureButton = document.querySelector('.feature-button.active');
-            if (activeFeatureButton) {
-                updateFeatureInfo(activeFeatureButton.dataset.feature);
-            } else {
-                updateFeatureInfo('montanhas'); // Default if no feature is active
-            }
+            displayQuestion();
+            updateQuizActionButton(contentData[currentLanguage].quizActionButtonConfirm, false);
         }
 
-        function updateRegionInfo(regionKey) {
-            const data = contentData[currentLanguage].regioesData[regionKey];
-            regionInfoDiv.innerHTML = `
-                <img src="${data.imageUrl}" alt="${currentLanguage === 'pt' ? 'Imagem da região ' : 'Image of '}${data.nome.split(" ")[0]}" class="w-full md:w-1/3 h-auto rounded-md object-cover mb-4 md:mb-0">
-                <div class="md:w-2/3">
-                    <h3 class="text-2xl font-semibold text-emerald-700 mb-2">${data.nome}</h3>
-                    <p class="mb-2"><strong class="text-stone-700">${currentLanguage === 'pt' ? 'Descrição:' : 'Description:'}</strong> ${data.descricao}</p>
-                    <p class="mb-2"><strong class="text-stone-700">${currentLanguage === 'pt' ? 'Clima:' : 'Climate:'}</strong> ${data.clima}</p>
-                    <p><strong class="text-stone-700">${currentLanguage === 'pt' ? 'Principais Setores Econômicos:' : 'Main Economic Sectors:'}</strong> ${data.economia}</p>
-                </div>
-            `;
-            updateRegioesChart(regionKey);
-            highlightMapRegion(regionKey);
-            highlightRegionButton(regionKey);
-        }
-        
-        function updateRegioesChart(selectedRegionKey) {
-            const chartData = {
-                labels: Object.values(contentData[currentLanguage].regioesData).map(r => r.nome.split(" ")[0]),
-                datasets: [{
-                    label: contentData[currentLanguage].regioesChartDatasetLabel,
-                    data: Object.values(contentData.pt.regioesData).map(r => r.ecossistemas), // Data values remain constant
-                    backgroundColor: Object.keys(contentData.pt.regioesData).map(key => key === selectedRegionKey ? '#059669' : '#d1d5db'),
-                    borderColor: Object.keys(contentData.pt.regioesData).map(key => key === selectedRegionKey ? '#047857' : '#9ca3af'),
-                    borderWidth: 1
-                }]
-            };
+        function displayQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                showFinalScore();
+                return;
+            }
 
-            if (regioesChartInstance) {
-                regioesChartInstance.data = chartData;
-                regioesChartInstance.options.scales.y.title.text = contentData[currentLanguage].regioesChartYAxisTitle;
-                regioesChartInstance.options.scales.x.title.text = contentData[currentLanguage].regioesChartXAxisTitle;
-                regioesChartInstance.update();
-            } else {
-                const ctx = document.getElementById('regioesChart').getContext('2d');
-                regioesChartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: chartData,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: { display: true, text: contentData[currentLanguage].regioesChartYAxisTitle }
-                            },
-                            x: {
-                                title: { display: true, text: contentData[currentLanguage].regioesChartXAxisTitle }
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed.y !== null) {
-                                            label += context.parsed.y;
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
+            const currentQuestion = questions[currentQuestionIndex];
+            questionTextEl.textContent = currentQuestion.question;
+            questionCounterEl.textContent = contentData[currentLanguage].quizQuestionCounterText(currentQuestionIndex + 1, questions.length);
+
+            optionsContainer.innerHTML = '';
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('quiz-option-button');
+                button.addEventListener('click', () => handleOptionClick(option, button));
+                optionsContainer.appendChild(button);
+            });
+            feedbackTextEl.textContent = '';
+            feedbackTextEl.className = 'text-lg font-medium';
+            updateQuizActionButton(contentData[currentLanguage].quizActionButtonConfirm, false); // Disable until an option is selected
+            selectedOptionValue = null; // Reset selected option for the new question
+        }
+
+        function handleOptionClick(option, buttonEl) {
+            selectedOptionValue = option;
+            // Remove 'selected' from all buttons
+            Array.from(optionsContainer.children).forEach(btn => btn.classList.remove('selected'));
+            // Add 'selected' to the clicked button
+            buttonEl.classList.add('selected');
+            updateQuizActionButton(contentData[currentLanguage].quizActionButtonConfirm, true); // Enable confirm button
+        }
+
+        quizActionButton.addEventListener('click', () => {
+            const currentQuestion = questions[currentQuestionIndex];
+            const actionButtonText = quizActionButtonTextEl.textContent;
+
+            if (actionButtonText === contentData[currentLanguage].quizActionButtonConfirm) {
+                if (!selectedOptionValue) return; // Should not happen if button is disabled
+
+                const isCorrect = selectedOptionValue === currentQuestion.answer;
+                if (isCorrect) {
+                    score++;
+                    feedbackTextEl.textContent = currentQuestion.feedbackCorrect;
+                    feedbackTextEl.className = 'text-lg font-medium correct';
+                } else {
+                    feedbackTextEl.textContent = currentQuestion.feedbackIncorrect;
+                    feedbackTextEl.className = 'text-lg font-medium incorrect';
+                }
+
+                // Visual feedback for options
+                Array.from(optionsContainer.children).forEach(btn => {
+                    btn.disabled = true;
+                    if (btn.textContent === currentQuestion.answer) {
+                        btn.classList.add('correct');
+                        btn.classList.remove('selected'); // remove selected if it was also correct
+                    } else if (btn.textContent === selectedOptionValue && !isCorrect) {
+                        btn.classList.add('incorrect');
+                        btn.classList.remove('selected');
                     }
                 });
+
+                if (currentQuestionIndex < questions.length - 1) {
+                    updateQuizActionButton(contentData[currentLanguage].quizActionButtonNext, true);
+                } else {
+                    updateQuizActionButton(contentData[currentLanguage].quizActionButtonShowScore, true);
+                }
+            } else if (actionButtonText === contentData[currentLanguage].quizActionButtonNext) {
+                currentQuestionIndex++;
+                displayQuestion();
+                 updateQuizActionButton(contentData[currentLanguage].quizActionButtonConfirm, false);
+            } else if (actionButtonText === contentData[currentLanguage].quizActionButtonShowScore) {
+                showFinalScore();
             }
-        }
+        });
         
-        function updateFeatureInfo(featureKey) {
-            const data = contentData[currentLanguage].relevoHidrografiaData[featureKey];
-            featureInfoDiv.innerHTML = `
-                <img src="${data.imageUrl}" alt="${currentLanguage === 'pt' ? 'Imagem de ' : 'Image of '}${data.titulo.split(" ")[0]}" class="w-full md:w-1/3 h-auto rounded-md object-cover mb-4 md:mb-0">
-                <div class="md:w-2/3">
-                    <h3 class="text-2xl font-semibold text-emerald-700 mb-2">${data.titulo}</h3>
-                    <p class="leading-relaxed">${data.texto}</p>
-                </div>
-            `;
-            if (featureKey === 'rios-lagos') {
-                riosChartContainer.classList.remove('hidden');
-                createRiosChart();
+        function updateQuizActionButton(text, enabled) {
+            quizActionButtonTextEl.textContent = text;
+            quizActionButton.disabled = !enabled;
+        }
+
+
+        function showFinalScore() {
+            questionContainer.style.display = 'none';
+            optionsContainer.style.display = 'none';
+            feedbackContainer.style.display = 'none';
+            quizActionButton.style.display = 'none';
+
+            scoreContainer.classList.remove('hidden');
+            
+            finalScoreTextEl.textContent = `${score} / ${questions.length}`;
+            
+            let message;
+            const percentage = (score / questions.length) * 100;
+            if (percentage >= 80) {
+                message = contentData[currentLanguage].quizScoreMessageExcellent(score, questions.length);
+            } else if (percentage >= 50) {
+                message = contentData[currentLanguage].quizScoreMessageGood(score, questions.length);
             } else {
-                riosChartContainer.classList.add('hidden');
+                message = contentData[currentLanguage].quizScoreMessageImprove(score, questions.length);
             }
-            highlightFeatureButton(featureKey);
+            quizScoreMessageTextEl.textContent = message;
+            quizScoreTitleTextEl.textContent = contentData[currentLanguage].quizScoreTitleText;
+            quizRestartButtonTextEl.textContent = contentData[currentLanguage].quizRestartButtonText;
         }
 
-        function createRiosChart() {
-            const riosData = {
-                labels: contentData[currentLanguage].riosChartLabels,
-                datasets: [{
-                    label: contentData[currentLanguage].riosChartDatasetLabel,
-                    data: [3767, 3730, 2330, 1579, 507], // Data values remain constant
-                    backgroundColor: ['#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#64748b'],
-                    borderColor: ['#2563eb', '#059669', '#ea580c', '#7c3aed', '#475569'],
-                    borderWidth: 1
-                }]
-            };
-            if (riosChartInstance) {
-                riosChartInstance.data = riosData;
-                riosChartInstance.options.scales.x.title.text = contentData[currentLanguage].riosChartXAxisTitle;
-                riosChartInstance.options.scales.y.title.text = contentData[currentLanguage].riosChartYAxisTitle;
-                riosChartInstance.update();
-            } else {
-                const ctx = document.getElementById('riosChart').getContext('2d');
-                riosChartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: riosData,
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                title: { display: true, text: contentData[currentLanguage].riosChartXAxisTitle }
-                            },
-                            y: {
-                                title: { display: true, text: contentData[currentLanguage].riosChartYAxisTitle }
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed.x !== null) {
-                                            label += context.parsed.x + ' km';
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }
+        restartQuizButton.addEventListener('click', startQuiz);
 
-        function highlightRegionButton(regionKey) {
-            regionButtons.forEach(btn => btn.classList.remove('active', 'bg-sky-600', 'text-white'));
-            regionButtons.forEach(btn => btn.classList.add('bg-stone-200'));
-            const targetButton = document.querySelector(`.region-button[data-region="${regionKey}"]`);
-            if (targetButton) {
-                targetButton.classList.add('active', 'bg-sky-600', 'text-white');
-                targetButton.classList.remove('bg-stone-200');
-            }
-        }
 
-        function highlightFeatureButton(featureKey) {
-            featureButtons.forEach(btn => btn.classList.remove('active', 'bg-sky-600', 'text-white'));
-            featureButtons.forEach(btn => btn.classList.add('bg-stone-200'));
-            const targetButton = document.querySelector(`.feature-button[data-feature="${featureKey}"]`);
-            if (targetButton) {
-                targetButton.classList.add('active', 'bg-sky-600', 'text-white');
-                targetButton.classList.remove('bg-stone-200');
-            }
-        }
-
-        function highlightMapRegion(regionKey) {
-            conceptualMapRegions.forEach(item => item.classList.remove('active-map-region'));
-            const targetMapRegion = document.querySelector(`.map-region-item[data-map-region="${regionKey}"]`);
-            if (targetMapRegion) {
-                targetMapRegion.classList.add('active-map-region');
-            }
-        }
-
+        // --- Tab Navigation ---
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
+                tabs.forEach(item => item.classList.remove('active'));
                 tab.classList.add('active');
-                const targetTab = tab.dataset.tab;
+
+                const target = tab.getAttribute('data-tab');
                 tabContents.forEach(content => {
-                    if (content.id === targetTab) {
+                    if (content.id === target) {
                         content.classList.remove('hidden');
-                        if (targetTab === 'regioes') {
-                             const activeRegionButton = document.querySelector('.region-button.active');
-                             if (activeRegionButton) {
-                                updateRegionInfo(activeRegionButton.dataset.region);
-                             } else {
-                                updateRegionInfo('nordeste');
-                             }
-                        } else if (targetTab === 'relevo-hidrografia') {
-                            const activeFeatureButton = document.querySelector('.feature-button.active');
-                            if (activeFeatureButton) {
-                                updateFeatureInfo(activeFeatureButton.dataset.feature);
-                            } else {
-                                updateFeatureInfo('montanhas');
-                            }
+                        if (target === 'quiz') { // Start quiz when tab is selected
+                           startQuiz();
                         }
                     } else {
                         content.classList.add('hidden');
                     }
                 });
-            });
-        });
-
-        regionButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                updateRegionInfo(button.dataset.region);
-            });
-        });
-        
-        featureButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                updateFeatureInfo(button.dataset.feature);
-            });
-        });
-
-        conceptualMapRegions.forEach(item => {
-            item.addEventListener('click', () => {
-                const regionKey = item.dataset.mapRegion;
-                updateRegionInfo(regionKey);
-            });
-        });
-
-        accordionButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const content = button.nextElementSibling;
-                const arrow = button.querySelector('.arrow');
-                
-                button.classList.toggle('active');
-                
-                if (content.classList.contains('open')) {
-                    content.classList.remove('open');
-                    arrow.style.transform = 'rotate(0deg)';
-                } else {
-                    content.classList.add('open');
-                    arrow.style.transform = 'rotate(180deg)';
+                 // Initialize charts if the relevant tab is active and chart hasn't been created
+                if (target === 'regioes' && !regioesChartInstance) {
+                    createRegioesChart(currentLanguage);
+                }
+                if (target === 'relevo-hidrografia' && document.getElementById('feature-info').querySelector('[data-feature-type="rios-lagos"]')) {
+                     if (!riosChartInstance) createRiosChart(currentLanguage);
+                     riosChartContainer.classList.remove('hidden');
+                } else if (target !== 'relevo-hidrografia' || !document.getElementById('feature-info').querySelector('[data-feature-type="rios-lagos"]')) {
+                    // Hide rios chart if not on relevo-hidrografia tab or if rios-lagos is not selected
+                    if (riosChartContainer) riosChartContainer.classList.add('hidden');
                 }
             });
         });
 
-        // Modal functions
-        function openModal(titleKey, contentKey) {
-            modalTitle.textContent = contentData[currentLanguage].curiosidades[titleKey].title;
-            modalContent.textContent = contentData[currentLanguage].curiosidades[contentKey].content;
-            curiosidadeModal.classList.add('open');
-        }
+        // --- Language Switcher ---
+        languageSelect.addEventListener('change', (e) => {
+            currentLanguage = e.target.value;
+            updateTextContent(currentLanguage);
+            // Re-render dynamic content based on new language
+            const activeRegionButton = document.querySelector('.region-button.active');
+            if (activeRegionButton) {
+                updateRegionInfo(activeRegionButton.dataset.region, currentLanguage);
+            }
+            const activeFeatureButton = document.querySelector('.feature-button.active');
+            if (activeFeatureButton) {
+                updateFeatureInfo(activeFeatureButton.dataset.feature, currentLanguage);
+            }
+            // Recreate charts with new language labels
+            if (regioesChartInstance) {
+                regioesChartInstance.destroy();
+                regioesChartInstance = null; // Ensure it's recreated if tab is active
+            }
+             if (riosChartInstance) {
+                riosChartInstance.destroy();
+                riosChartInstance = null;
+            }
+            // If on regions tab, recreate chart
+            if (document.querySelector('.tab-button[data-tab="regioes"].active')) {
+                 createRegioesChart(currentLanguage);
+            }
+            // If on relevo-hidrografia tab AND rios-lagos is selected, recreate chart
+            if (document.querySelector('.tab-button[data-tab="relevo-hidrografia"].active') && document.getElementById('feature-info').querySelector('[data-feature-type="rios-lagos"]')) {
+                createRiosChart(currentLanguage);
+            }
 
-        function closeModal() {
-            curiosidadeModal.classList.remove('open');
-        }
-
-        curiosidadeVisaoGeralBtn.addEventListener('click', () => openModal('visaoGeral', 'visaoGeral'));
-        curiosidadeRelevoBtn.addEventListener('click', () => openModal('relevo', 'relevo'));
-        curiosidadeCulturaBtn.addEventListener('click', () => openModal('cultura', 'cultura'));
-        modalCloseButton.addEventListener('click', closeModal);
-        curiosidadeModal.addEventListener('click', (event) => {
-            if (event.target === curiosidadeModal) {
-                closeModal();
+            // If quiz tab is active, restart quiz in new language
+            if (document.querySelector('.tab-button[data-tab="quiz"].active')) {
+                startQuiz();
             }
         });
 
+        function updateTextContent(lang) {
+            const langData = contentData[lang];
+            document.title = langData.appTitle;
+            // Helper to set text or HTML
+            const setText = (id, content) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = content;
+            };
+            const setHtml = (id, content) => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = content;
+            };
 
-        languageSelect.addEventListener('change', (event) => {
-            currentLanguage = event.target.value;
-            updateTextContent();
+            setText('headerTitle', langData.headerTitle);
+            setText('headerSubtitle', langData.headerSubtitle);
+            setText('navVisaoGeral', langData.navVisaoGeral);
+            setText('navRegioes', langData.navRegioes);
+            setText('navRelevoHidrografia', langData.navRelevoHidrografia);
+            setText('navGeografiaCultura', langData.navGeografiaCultura);
+            setText('navQuiz', langData.navQuiz); // New Quiz Nav
+            setText('visaoGeralTitle', langData.visaoGeralTitle);
+            setHtml('visaoGeralPara1', langData.visaoGeralPara1);
+            setHtml('visaoGeralPara2', langData.visaoGeralPara2);
+            setText('visaoGeralPara3', langData.visaoGeralPara3);
+            setText('textStartExploringBtn', langData.textStartExploringBtn);
+            setText('curiosidadeVisaoGeralText', langData.curiosidadeVisaoGeralText);
+            setText('regioesTitle', langData.regioesTitle);
+            setText('regioesIntro', langData.regioesIntro);
+            setText('mapaConceitualTitle', langData.mapaConceitualTitle);
+            setText('mapNordeste', langData.mapNordeste);
+            setText('mapSul', langData.mapSul);
+            setText('mapCentroOeste', langData.mapCentroOeste);
+            setText('mapSudoeste', langData.mapSudoeste);
+            setText('mapOeste', langData.mapOeste);
+            setText('btnNordeste', langData.btnNordeste);
+            setText('btnSul', langData.btnSul);
+            setText('btnCentroOeste', langData.btnCentroOeste);
+            setText('btnSudoeste', langData.btnSudoeste);
+            setText('btnOeste', langData.btnOeste);
+            setText('regioesChartTitle', langData.regioesChartTitle);
+            setText('regioesChartSubtitle', langData.regioesChartSubtitle);
+            setText('relevoHidrografiaTitle', langData.relevoHidrografiaTitle);
+            setText('relevoHidrografiaIntro', langData.relevoHidrografiaIntro);
+            setText('btnMontanhas', langData.btnMontanhas);
+            setText('btnPlanicies', langData.btnPlanicies);
+            setText('btnRiosLagos', langData.btnRiosLagos);
+            setText('btnLitoral', langData.btnLitoral);
+            setText('riosChartTitle', langData.riosChartTitle);
+            setText('riosChartSubtitle', langData.riosChartSubtitle);
+            setText('curiosidadeRelevoText', langData.curiosidadeRelevoText);
+            setText('geografiaCulturaTitle', langData.geografiaCulturaTitle);
+            setText('geografiaCulturaIntro', langData.geografiaCulturaIntro);
+            setText('accClimaTitle', langData.accClimaTitle);
+            setText('accClimaContent', langData.accClimaContent);
+            setText('accEconomiaTitle', langData.accEconomiaTitle);
+            setText('accEconomiaContent', langData.accEconomiaContent);
+            setText('accDesenvolvimentoTitle', langData.accDesenvolvimentoTitle);
+            setText('accDesenvolvimentoContent', langData.accDesenvolvimentoContent);
+            setText('accDesafiosTitle', langData.accDesafiosTitle);
+            setText('accDesafiosContent', langData.accDesafiosContent);
+            setText('curiosidadeCulturaText', langData.curiosidadeCulturaText);
+            setHtml('footerText', langData.footerText.replace('<span id=\'currentYear\'></span>', `<span id='currentYear'>${new Date().getFullYear()}</span>`)); // Keep year dynamic
+            setText('modalTitle', langData.modalTitle);
+
+            // Update Quiz Texts (if quiz elements exist)
+            setText('quizSectionTitle', langData.quizSectionTitle);
+            setText('quizIntroText', langData.quizIntroText);
+            // Action button and score titles will be updated by quiz logic based on state
+        }
+
+        // --- Region Interaction ---
+        regionButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                regionButtons.forEach(btn => {
+                    btn.classList.remove('active', 'bg-sky-600', 'text-white');
+                    btn.classList.add('bg-stone-200', 'hover:bg-stone-300');
+                });
+                button.classList.add('active', 'bg-sky-600', 'text-white');
+                button.classList.remove('bg-stone-200', 'hover:bg-stone-300');
+                
+                const regionKey = button.dataset.region;
+                updateRegionInfo(regionKey, currentLanguage);
+                updateConceptualMapHighlight(regionKey);
+                updateRegioesChartHighlight(regionKey);
+            });
         });
 
-        // Initialize default views and content
-        updateTextContent(); // Call once to set initial language
-        // The click event on the default tab will handle initial region/feature info
-        document.querySelector('[data-tab="visao-geral"]').click();
+        conceptualMapRegions.forEach(mapItem => {
+            mapItem.addEventListener('click', () => {
+                const regionKey = mapItem.dataset.mapRegion;
+                // Simulate click on corresponding button
+                const correspondingButton = document.querySelector(`.region-button[data-region="${regionKey}"]`);
+                if (correspondingButton) {
+                    correspondingButton.click();
+                }
+            });
+        });
+
+        function updateRegionInfo(regionKey, lang) {
+            const region = contentData[lang].regioesData[regionKey];
+            if (region) {
+                regionInfoDiv.innerHTML = `
+                    <img src="${region.imageUrl}" alt="Imagem ilustrativa da região ${region.nome}" class="w-full md:w-1/3 h-auto rounded-lg shadow-md object-cover max-h-60" onerror="this.src='https://placehold.co/300x200/cccccc/969696?text=Imagem+N%C3%A3o+Dispon%C3%ADvel'; this.alt='Imagem não disponível'">
+                    <div class="md:w-2/3">
+                        <h3 class="text-2xl font-semibold text-emerald-700 mb-2">${region.nome}</h3>
+                        <p class="mb-2 text-sm"><strong>${lang === 'pt' ? 'Clima:' : 'Climate:'}</strong> ${region.clima}</p>
+                        <p class="mb-2 text-sm"><strong>${lang === 'pt' ? 'Economia Principal:' : 'Main Economy:'}</strong> ${region.economia}</p>
+                        <p class="text-base leading-relaxed">${region.descricao}</p>
+                    </div>`;
+            }
+        }
+        
+        function updateConceptualMapHighlight(activeRegionKey) {
+            conceptualMapRegions.forEach(item => {
+                if (item.dataset.mapRegion === activeRegionKey) {
+                    item.classList.add('active-map-region');
+                } else {
+                    item.classList.remove('active-map-region');
+                }
+            });
+        }
+
+        // --- Feature Interaction (Relevo e Hidrografia) ---
+        featureButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                featureButtons.forEach(btn => {
+                    btn.classList.remove('active', 'bg-sky-600', 'text-white');
+                    btn.classList.add('bg-stone-200', 'hover:bg-stone-300');
+                });
+                button.classList.add('active', 'bg-sky-600', 'text-white');
+                button.classList.remove('bg-stone-200', 'hover:bg-stone-300');
+                
+                const featureKey = button.dataset.feature;
+                updateFeatureInfo(featureKey, currentLanguage);
+
+                if (featureKey === 'rios-lagos') {
+                    riosChartContainer.classList.remove('hidden');
+                    if (!riosChartInstance) { // Create chart if it doesn't exist
+                        createRiosChart(currentLanguage);
+                    } else { // Update existing chart data/labels if needed (or simply ensure it's visible)
+                        riosChartInstance.data.datasets[0].label = contentData[currentLanguage].riosChartData.label;
+                        riosChartInstance.data.labels = contentData[currentLanguage].riosChartData.labels;
+                        riosChartInstance.update();
+                    }
+                } else {
+                    riosChartContainer.classList.add('hidden');
+                }
+            });
+        });
+
+        function updateFeatureInfo(featureKey, lang) {
+            const feature = contentData[lang].featureData[featureKey];
+            if (feature) {
+                featureInfoDiv.innerHTML = `
+                    <img src="${feature.imagem}" alt="Imagem ilustrativa de ${feature.nome}" class="w-full md:w-1/3 h-auto rounded-lg shadow-md object-cover max-h-48" onerror="this.src='https://placehold.co/300x200/cccccc/969696?text=Imagem+N%C3%A3o+Dispon%C3%ADvel'; this.alt='Imagem não disponível'">
+                    <div class="md:w-2/3" data-feature-type="${featureKey}"> <h3 class="text-2xl font-semibold text-emerald-700 mb-2">${feature.nome}</h3>
+                        <p class="text-base leading-relaxed">${feature.descricao}</p>
+                    </div>`;
+            }
+        }
+
+        // --- Accordion (Geografia e Cultura) ---
+        accordionButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const content = button.nextElementSibling;
+                const arrow = button.querySelector('.arrow');
+
+                // Close other open accordions
+                accordionButtons.forEach(otherButton => {
+                    if (otherButton !== button) {
+                        otherButton.classList.remove('active');
+                        otherButton.nextElementSibling.classList.remove('open');
+                        otherButton.nextElementSibling.style.maxHeight = null;
+                        otherButton.querySelector('.arrow').style.transform = 'rotate(0deg)';
+                    }
+                });
+
+                button.classList.toggle('active');
+                content.classList.toggle('open');
+                
+                if (content.classList.contains('open')) {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                    arrow.style.transform = 'rotate(180deg)';
+                } else {
+                    content.style.maxHeight = null;
+                    arrow.style.transform = 'rotate(0deg)';
+                }
+            });
+        });
+
+        // --- Modal (Curiosidades) ---
+        function openModal(contentKey) {
+            modalContent.textContent = contentData[currentLanguage].curiosidades[contentKey];
+            curiosidadeModal.classList.add('open');
+        }
+        curiosidadeVisaoGeralBtn.addEventListener('click', () => openModal('visaoGeral'));
+        curiosidadeRelevoBtn.addEventListener('click', () => openModal('relevo'));
+        curiosidadeCulturaBtn.addEventListener('click', () => openModal('cultura'));
+        modalCloseButton.addEventListener('click', () => curiosidadeModal.classList.remove('open'));
+        curiosidadeModal.addEventListener('click', (e) => { // Close on overlay click
+            if (e.target === curiosidadeModal) {
+                curiosidadeModal.classList.remove('open');
+            }
+        });
+
+        // --- Chart Creation ---
+        function createRegioesChart(lang) {
+            const ctx = document.getElementById('regioesChart').getContext('2d');
+            const langData = contentData[lang];
+            const regionNames = Object.values(langData.regioesData).map(r => r.nome.replace(/ \S+$/, '')); // Remove emoji for label
+            const ecosystemCounts = Object.values(langData.regioesData).map(r => r.ecossistemas);
+
+            if (regioesChartInstance) {
+                regioesChartInstance.destroy();
+            }
+
+            regioesChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: regionNames,
+                    datasets: [{
+                        label: langData.regioesChartTitle.split(':')[1]?.trim() || 'Ecossistemas', // Dynamic label from title
+                        data: ecosystemCounts,
+                        backgroundColor: [
+                            'rgba(2, 132, 199, 0.7)', // sky-600
+                            'rgba(249, 115, 22, 0.7)', // orange-500
+                            'rgba(202, 138, 4, 0.7)',  // yellow-600
+                            'rgba(217, 119, 6, 0.7)',  // amber-600
+                            'rgba(5, 150, 105, 0.7)'   // emerald-600
+                        ],
+                        borderColor: [
+                            'rgba(2, 132, 199, 1)',
+                            'rgba(249, 115, 22, 1)',
+                            'rgba(202, 138, 4, 1)',
+                            'rgba(217, 119, 6, 1)',
+                            'rgba(5, 150, 105, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // Horizontal bar chart
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: { display: true, text: lang === 'pt' ? 'Número Estimado de Ecossistemas' : 'Estimated Number of Ecosystems' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateRegioesChartHighlight(activeRegionKey) {
+            if (!regioesChartInstance) return;
+            const regionOrder = ["nordeste", "sul", "centro-oeste", "sudoeste", "oeste"]; // Match this to chart label order
+            const activeIndex = regionOrder.indexOf(activeRegionKey);
+
+            const defaultColors = [
+                'rgba(2, 132, 199, 0.7)', 'rgba(249, 115, 22, 0.7)', 'rgba(202, 138, 4, 0.7)',
+                'rgba(217, 119, 6, 0.7)', 'rgba(5, 150, 105, 0.7)'
+            ];
+            const defaultBorderColors = [
+                'rgba(2, 132, 199, 1)', 'rgba(249, 115, 22, 1)', 'rgba(202, 138, 4, 1)',
+                'rgba(217, 119, 6, 1)', 'rgba(5, 150, 105, 1)'
+            ];
+            
+            const highlightColor = 'rgba(234, 179, 8, 0.8)'; // yellow-500 for highlight
+            const highlightBorderColor = 'rgba(234, 179, 8, 1)';
+
+            regioesChartInstance.data.datasets[0].backgroundColor = defaultColors.map((color, index) => 
+                index === activeIndex ? highlightColor : color
+            );
+            regioesChartInstance.data.datasets[0].borderColor = defaultBorderColors.map((color, index) => 
+                index === activeIndex ? highlightBorderColor : color
+            );
+            regioesChartInstance.update();
+        }
+
+
+        function createRiosChart(lang) {
+            const ctxRios = document.getElementById('riosChart').getContext('2d');
+            const riosData = contentData[lang].riosChartData;
+
+            if (riosChartInstance) {
+                riosChartInstance.destroy();
+            }
+            riosChartInstance = new Chart(ctxRios, {
+                type: 'bar', // Horizontal bar chart
+                data: {
+                    labels: riosData.labels,
+                    datasets: [{
+                        label: riosData.label,
+                        data: riosData.data,
+                        backgroundColor: 'rgba(14, 165, 233, 0.7)', // sky-500
+                        borderColor: 'rgba(14, 165, 233, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: { display: true, text: lang === 'pt' ? 'Extensão (km)' : 'Length (km)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // --- Initial Setup ---
+        updateTextContent(currentLanguage);
+        // Set initial active elements and content
+        if (regionButtons.length > 0) {
+            updateRegionInfo(regionButtons[0].dataset.region, currentLanguage); // Show info for the first region
+            updateConceptualMapHighlight(regionButtons[0].dataset.region);
+        }
+        if (featureButtons.length > 0) {
+            updateFeatureInfo(featureButtons[0].dataset.feature, currentLanguage); // Show info for the first feature
+        }
+         // Create regioes chart on initial load if visao-geral or regioes is active (default is visao-geral)
+        const initialActiveTab = document.querySelector('.tab-button.active').dataset.tab;
+        if (initialActiveTab === 'visao-geral' || initialActiveTab === 'regioes') {
+            // The regioes chart is on the 'regioes' tab. Let's create it when that tab is first shown.
+            // For now, we can assume default active region button is 'nordeste'
+            // If the default active tab is 'regioes', then create the chart.
+            if (initialActiveTab === 'regioes' && !regioesChartInstance) {
+                 createRegioesChart(currentLanguage);
+                 updateRegioesChartHighlight(document.querySelector('.region-button.active').dataset.region);
+            }
+        }
+         // Ensure the "Comece Explorando" button works
+        document.getElementById('startExploringBtn').addEventListener('click', () => {
+            const regioesTabButton = document.querySelector('button[data-tab="regioes"]');
+            if (regioesTabButton) {
+                regioesTabButton.click(); // Simulate click to switch tab and trigger chart creation
+            }
+        });
+
     </script>
 </body>
 </html>
